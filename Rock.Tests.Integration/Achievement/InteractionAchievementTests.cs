@@ -23,9 +23,8 @@ namespace Rock.Tests.Integration.RockTests.Model
         private static AchievementTypeService _achievementTypeService { get; set; }
         private static InteractionService _interactionService { get; set; }
 
-        private static List<int> _personAliasId { get; set; }
-        //private static int _personId { get; set; }
-
+        private static List<int> _personAliasIds { get; set; }
+        
         private static int _achievementTypeId { get; set; }
         private static InteractionComponentCache _interactionComponent { get; set; }
 
@@ -37,34 +36,39 @@ namespace Rock.Tests.Integration.RockTests.Model
         #region Setup Methods
 
         /// <summary>
-        /// Create interaction data
+        /// Creates the person alias data.
         /// </summary>
-        private static void CreateInteractionData()
+        private static void CreatePersonAliasData()
         {
             var tedDeckerGuid = TestGuids.TestPeople.TedDecker.AsGuid();
 
             var personAliasService = new PersonAliasService( _rockContext );
-
             var personService = new PersonService( _rockContext );
             var tedDecker = personService.Get( tedDeckerGuid );
             var aliasPersonId = personService.Queryable().Max( p => p.Id ) + 1;
             personAliasService.DeleteRange( personAliasService.Queryable().Where( pa => pa.AliasPersonId >= aliasPersonId ) );
             _rockContext.SaveChanges();
 
-            for(var i = 0; i < NUMBER_OF_ALIASES; i++ )
+            for ( var i = 0; i < NUMBER_OF_ALIASES; i++ )
             {
                 personAliasService.Add( new PersonAlias { Person = tedDecker, AliasPersonGuid = Guid.NewGuid(), AliasPersonId = aliasPersonId + i } );
             }
-            
+
             _rockContext.SaveChanges();
 
-            var personAlias = personAliasService.Queryable().Where( pa => pa.Person.Guid == tedDeckerGuid ).Take( NUMBER_OF_ALIASES ).Select(p => p.Id).ToList();
-            _personAliasId = personAlias;
+            var personAlias = personAliasService.Queryable().Where( pa => pa.Person.Guid == tedDeckerGuid ).Take( NUMBER_OF_ALIASES ).Select( p => p.Id ).ToList();
+            _personAliasIds = personAlias;
+        }
 
+        /// <summary>
+        /// Create interaction data
+        /// </summary>
+        private static void CreateInteractionData()
+        {
             _interactionComponent = InteractionComponentCache.All().FirstOrDefault( i => i.InteractionChannel.Guid == SystemGuid.InteractionChannel.ROCK_RMS.AsGuid() );
 
             var existing = _interactionService.Queryable().Where( i =>
-                _personAliasId.Contains( i.PersonAliasId.Value) &&
+                _personAliasIds.Contains( i.PersonAliasId.Value) &&
                 i.InteractionComponentId == _interactionComponent.Id
             );
 
@@ -75,7 +79,7 @@ namespace Rock.Tests.Integration.RockTests.Model
                 _interactionService.Add( new Interaction
                 {
                     InteractionComponentId = _interactionComponent.Id,
-                    PersonAliasId = _personAliasId[i % NUMBER_OF_ALIASES],
+                    PersonAliasId = _personAliasIds[i % NUMBER_OF_ALIASES],
                     InteractionDateTime = RockDateTime.Today,
                     ForeignKey = KEY,
                     ForeignId = i
@@ -137,6 +141,7 @@ namespace Rock.Tests.Integration.RockTests.Model
             _achievementTypeService = new AchievementTypeService( _rockContext );
 
             DeleteTestData();
+            CreatePersonAliasData();
             CreateInteractionData();
             CreateAchievementTypeData();
         }
@@ -170,7 +175,7 @@ namespace Rock.Tests.Integration.RockTests.Model
         {
             var attemptsQuery = new AchievementAttemptService( _rockContext ).Queryable()
                 .AsNoTracking()
-                .Where( saa => saa.AchievementTypeId == _achievementTypeId &&  _personAliasId.Contains( saa.AchieverEntityId) )
+                .Where( saa => saa.AchievementTypeId == _achievementTypeId &&  _personAliasIds.Contains( saa.AchieverEntityId) )
                 .OrderBy( saa => saa.AchievementAttemptStartDateTime );
 
             // There should be no attempts
