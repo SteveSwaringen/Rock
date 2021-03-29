@@ -10,7 +10,7 @@
 -- Parameters
 declare
     -- Set this value to the number of interactions that will be created.
-    @interactionsToAddCount int = 1000000
+    @interactionsToAddCount int = 100000
     -- Days of spread for the interaction to occur. 30 means 30 days ago until today
     ,@daySpread int = 365
     -- Set this value to place a tag in the ForeignKey field of the sample data records for easier identification.
