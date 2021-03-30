@@ -20,6 +20,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 
+using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
 
@@ -47,16 +48,8 @@ namespace Rock.CheckIn
         /// <param name="person">The person.</param>
         public RosterAttendee( Rock.Model.Person person )
         {
-            person.LoadAttributes();
-
             _person = person;
-            if ( person.AgeClassification != AgeClassification.Adult )
-            {
-                ParentNames = Rock.Model.Person.GetFamilySalutation( person, finalSeparator: "and" );
-            }
-
-            HasHealthNote = GetHasHealthNote( person );
-            HasLegalNote = GetHasLegalNote( person );
+            
         }
 
         #region Properties
@@ -117,13 +110,26 @@ namespace Rock.CheckIn
         /// </value>
         public string LastName => _person.LastName;
 
+        private string _parentsNames = null;
+
         /// <summary>
         /// Gets the parent names (if attendee is a child)
         /// </summary>
         /// <value>
         /// The parent names.
         /// </value>
-        public string ParentNames { get; private set; }
+        public string ParentNames
+        {
+            get
+            {
+                if ( _parentsNames == null && _person.AgeClassification != AgeClassification.Adult )
+                {
+                    _parentsNames = Rock.Model.Person.GetFamilySalutation( _person, finalSeparator: "and" );
+                }
+
+                return _parentsNames;
+            }
+        }
 
         /// <summary>
         /// Gets the photo identifier.
@@ -378,12 +384,12 @@ namespace Rock.CheckIn
             RosterAttendeeStatus currentStatus = GetCurrentStatus();
 
             var statusBuilder = new StringBuilder();
-            foreach( var status in this.Statuses.Distinct())
+            foreach ( var status in this.Statuses.Distinct() )
             {
                 statusBuilder.Append( GetStatusIconHtmlTagForStatus( isMobile, status ) );
-            }    
+            }
 
-            return statusBuilder.ToString() ;
+            return statusBuilder.ToString();
         }
 
         /// <summary>
@@ -432,7 +438,7 @@ namespace Rock.CheckIn
         {
             RosterAttendeeStatus matchingStatus;
 
-            // The attendee might be in multiple statuses, pick the status that makes the most sense, which would be based on the precendance:
+            // The attendee might be in multiple statuses, pick the status that makes the most sense, which would be based on the precedence:
             // Present, Checked In, Checked Out
             if ( Statuses.Contains( RosterAttendeeStatus.Present ) )
             {
@@ -659,28 +665,6 @@ namespace Rock.CheckIn
             }
         }
 
-        /// <summary>
-        /// Gets whether the person has a health note.
-        /// </summary>
-        /// <param name="person">The person.</param>
-        private bool GetHasHealthNote( Rock.Model.Person person )
-        {
-            const string Person_Allergy = "Allergy";
-            string attributeValue = person.GetAttributeValue( Person_Allergy );
-            return attributeValue.IsNotNullOrWhiteSpace();
-        }
-
-        /// <summary>
-        /// Gets whether the person has a legal note.
-        /// </summary>
-        /// <param name="person">The person.</param>
-        private bool GetHasLegalNote( Rock.Model.Person person )
-        {
-            const string Person_LegalNotes = "LegalNotes";
-            string attributeValue = person.GetAttributeValue( Person_LegalNotes );
-            return attributeValue.IsNotNullOrWhiteSpace();
-        }
-
         #endregion Private methods
 
         #region Static methods
@@ -705,6 +689,11 @@ namespace Rock.CheckIn
         /// <returns></returns>
         public static IList<RosterAttendee> GetFromAttendanceList( IList<Attendance> attendanceList, GroupTypeCache selectedCheckinArea )
         {
+            if ( !attendanceList.Any() )
+            {
+                return new List<RosterAttendee>();
+            }
+
             var groupTypeIds = attendanceList.Select( a => a.Occurrence.Group.GroupTypeId ).Distinct();
             var groupTypes = groupTypeIds.Select( a => GroupTypeCache.Get( a ) ).Where( a => a != null );
 
@@ -733,6 +722,33 @@ namespace Rock.CheckIn
                     .ToDictionary( k => k.GroupTypeId, v => v );
             }
 
+            var personIds = attendanceList.Select( a => a.PersonAlias.PersonId ).Distinct().ToList();
+
+            var entityTypeIdPerson = EntityTypeCache.GetId<Rock.Model.Person>() ?? 0;
+            const string Person_Allergy = "Allergy";
+            const string Person_LegalNotes = "LegalNotes";
+            Dictionary<int, List<string>> allergyLegalNoteAttributeValuesByPersonId;
+            if ( personIds.Any() )
+            {
+                allergyLegalNoteAttributeValuesByPersonId = new AttributeValueService( new RockContext() ).Queryable()
+                    .Where( a => a.Attribute.EntityTypeId == entityTypeIdPerson
+                        && ( a.Attribute.Key == Person_Allergy || a.Attribute.Key == Person_LegalNotes )
+                        && a.EntityId.HasValue
+                        && personIds.Contains( a.EntityId.Value )
+                        && a.Value != null && a.Value != "" )
+                    .Select( a => new
+                    {
+                        PersonId = a.EntityId.Value,
+                        AttributeKey = a.Attribute.Key,
+                    } ).ToList()
+                    .GroupBy( a => a.PersonId )
+                    .ToDictionary( k => k.Key, v => v.Select( a => a.AttributeKey ).ToList() );
+            }
+            else
+            {
+                allergyLegalNoteAttributeValuesByPersonId = new Dictionary<int, List<string>>();
+            }
+
             var attendees = new List<RosterAttendee>();
             foreach ( var attendance in attendanceList )
             {
@@ -743,6 +759,8 @@ namespace Rock.CheckIn
                 if ( attendee == null )
                 {
                     attendee = new RosterAttendee( person );
+                    attendee.HasHealthNote = allergyLegalNoteAttributeValuesByPersonId.GetValueOrNull( person.Id )?.Contains( Person_Allergy ) ?? false;
+                    attendee.HasLegalNote = allergyLegalNoteAttributeValuesByPersonId.GetValueOrNull( person.Id )?.Contains( Person_LegalNotes ) ?? false;
                     attendees.Add( attendee );
                 }
 
