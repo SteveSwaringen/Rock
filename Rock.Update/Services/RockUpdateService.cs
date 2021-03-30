@@ -32,8 +32,8 @@ namespace Rock.Update.Services
     {
         private const string GET_RELEASE_LIST_URL = "https://www.rockrms.com/api/RockUpdate/GetReleasesList";
         private const string GET_RELEASE_LIST_SINCE_URL = "https://www.rockrms.com/api/RockUpdate/GetReleasesListSinceVersion";
-        private const string EARLY_ACCESS_URL = "http://www.rockrms.com/api/RockUpdate/GetEarlyAccessStatus";
-        private const string EARLY_ACCESS_REQUEST_URL = "http://www.rockrms.com/earlyaccessissues?RockInstanceId=";
+        private const string EARLY_ACCESS_URL = "https://www.rockrms.com/api/RockUpdate/GetEarlyAccessStatus";
+        private const string EARLY_ACCESS_REQUEST_URL = "https://www.rockrms.com/earlyaccessissues?RockInstanceId=";
 
         /// <summary>
         /// Gets the releases list from the rock server.

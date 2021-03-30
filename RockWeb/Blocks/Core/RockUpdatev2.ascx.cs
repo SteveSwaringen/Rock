@@ -32,9 +32,7 @@ using Rock.Update.Exceptions;
 using Rock.Update.Helpers;
 using Rock.Update.Models;
 using Rock.Update.Services;
-using Rock.Utility;
 using Rock.VersionInfo;
-using Rock.Web.Cache;
 
 namespace RockWeb.Blocks.Core
 {
@@ -208,7 +206,7 @@ namespace RockWeb.Blocks.Core
                     LinkButton lbInstall = e.Item.FindControl( "lbInstall" ) as LinkButton;
                     var divPanel = e.Item.FindControl( "divPanel" ) as HtmlGenericControl;
 
-                    if ( (package.RequiresVersion.IsNotNullOrWhiteSpace() && new Version( package.RequiresVersion ) <= _installedVersion)
+                    if ( ( package.RequiresVersion.IsNotNullOrWhiteSpace() && new Version( package.RequiresVersion ) <= _installedVersion )
                         || ( package.RequiresVersion.IsNullOrWhiteSpace() && new Version( package.SemanticVersion ) > _installedVersion ) )
                     {
                         var release = _releases.Where( r => r.SemanticVersion == package.Version.ToString() ).FirstOrDefault();
@@ -241,6 +239,13 @@ namespace RockWeb.Blocks.Core
                         lbInstall.AddCssClass( "small" );
                         lbInstall.AddCssClass( "btn-xs" );
                         lbInstall.Text = "Requirements not met";
+                    }
+                    else if ( package.PackageUri.IsNullOrWhiteSpace() )
+                    {
+                        lbInstall.Enabled = false;
+                        lbInstall.AddCssClass( "small" );
+                        lbInstall.AddCssClass( "btn-xs" );
+                        lbInstall.Text = "Package doesn't exists.";
                     }
                 }
             }
@@ -355,26 +360,6 @@ namespace RockWeb.Blocks.Core
         }
 
         /// <summary>
-        /// Removes the old *.rdelete (Rock delete) files that were created during an update.
-        /// </summary>
-        private void RemoveOldRDeleteFiles()
-        {
-            var rockDirectory = new DirectoryInfo( Server.MapPath( "~" ) );
-
-            foreach ( var file in rockDirectory.EnumerateFiles( "*.rdelete", SearchOption.AllDirectories ) )
-            {
-                try
-                {
-                    file.Delete();
-                }
-                catch
-                {
-                    //we'll try again later
-                }
-            }
-        }
-
-        /// <summary>
         /// Converts + and * to html line items (li) wrapped in unordered lists (ul).
         /// </summary>
         /// <param name="str">a string that contains lines that start with + or *</param>
@@ -449,37 +434,6 @@ namespace RockWeb.Blocks.Core
                     LogException( ex );
                 }
                 catch { }
-            }
-        }
-
-
-        /// <summary>
-        /// Sets up the page to report the error in a nicer manner.
-        /// </summary>
-        /// <param name="ex"></param>
-        private void HandleUpdateException( Exception ex )
-        {
-            pnlError.Visible = true;
-            pnlUpdateSuccess.Visible = false;
-            pnlNoUpdates.Visible = false;
-            nbErrors.NotificationBoxType = Rock.Web.UI.Controls.NotificationBoxType.Danger;
-
-            if ( ex.Message.Contains( "404" ) )
-            {
-                nbErrors.Text = string.Format( "It appears that someone configured your <code>UpdateServerUrl</code> setting incorrectly: {0}", GlobalAttributesCache.Get().GetValue( "UpdateServerUrl" ) );
-            }
-            else if ( ex.Message.Contains( "could not be resolved" ) )
-            {
-                nbErrors.Text = string.Format( "I think either the update server is down or your <code>UpdateServerUrl</code> setting is incorrect: {0}", GlobalAttributesCache.Get().GetValue( "UpdateServerUrl" ) );
-            }
-            else if ( ex.Message.Contains( "Unable to connect" ) || ex.Message.Contains( "(503)" ) )
-            {
-                nbErrors.NotificationBoxType = Rock.Web.UI.Controls.NotificationBoxType.Warning;
-                nbErrors.Text = "The update server is currently unavailable (possibly undergoing maintenance). Please try again later.";
-            }
-            else
-            {
-                nbErrors.Text = string.Format( "...actually, I'm not sure what happened here: {0}", ex.Message );
             }
         }
 

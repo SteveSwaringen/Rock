@@ -34,7 +34,7 @@ namespace Rock.Update
     /// </summary>
     public class RockInstaller
     {
-        private const string LOCAL_ROCK_PACKAGE_FOLDER = "App_Data\\RockShop";
+        private const string LOCAL_ROCK_PACKAGE_FOLDER = "App_Data\\Packages";
         private const string BACKUP_FOLDER = "App_Data\\RockBackup";
         private const string TRANSFORM_FILE_SUFFIX = ".rock.xdt";
         private const string CONTENT_PATH = "content/";
