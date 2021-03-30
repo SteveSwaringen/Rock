@@ -397,7 +397,7 @@ namespace RockWeb.Blocks.CheckIn.Manager
             lElapsedCheckInTime.Text = string.Format(
                 "<span title='{0}'>{1}</span>",
                 attendee.CheckInTime.ToShortTimeString(),
-                RockFilters.HumanizeTimeSpan( attendee.CheckInTime, DateTime.Now, unit: "Second" ) );
+                RockFilters.HumanizeTimeSpan( attendee.CheckInTime, RockDateTime.Now, unit: "Second" ) );
 
             // Desktop only.
             var lStatusTag = e.Row.FindControl( "lStatusTag" ) as Literal;
@@ -586,11 +586,23 @@ namespace RockWeb.Blocks.CheckIn.Manager
 
             attendanceList = CheckinManagerHelper.FilterByActiveCheckins( currentDateTime, attendanceList );
             attendanceList = attendanceList.Where( a => a.PersonAlias != null && a.PersonAlias.Person != null ).ToList();
-            var attendees = RosterAttendee.GetFromAttendanceList( attendanceList );
+            var unfilteredAttendees = RosterAttendee.GetFromAttendanceList( attendanceList, checkinAreaFilter );
 
-            UpdateStatusFilterTabs( attendees );
+            UpdateStatusFilterTabs( unfilteredAttendees );
 
-            var attendeesForCurrentStatusFilter = attendees.Where( a => a.MeetsRosterStatusFilter( currentStatusFilter ) ).ToList();
+            List<Attendance> attendanceListForCurrentStatusFilter;
+
+            if ( !HasPresenceEnabled( unfilteredAttendanceCheckinAreas ) && currentStatusFilter == RosterStatusFilter.Present )
+            {
+                // Edge case. If there are attendance records with 'PresentDateTime' null (due to pre v12.3 checkin, or a change in configuration from Enable Presence to Disable Presence), also include CheckedIn if we are filter only for Present.
+                attendanceListForCurrentStatusFilter = attendanceList.Where( a => RosterAttendee.AttendanceMeetsRosterStatusFilter( a, RosterStatusFilter.Present ) || RosterAttendee.AttendanceMeetsRosterStatusFilter( a, RosterStatusFilter.CheckedIn ) ).ToList();
+            }
+            else
+            {
+                attendanceListForCurrentStatusFilter = attendanceList.Where( a => RosterAttendee.AttendanceMeetsRosterStatusFilter( a, currentStatusFilter ) ).ToList();
+            }
+
+            var attendeesForCurrentStatusFilter = RosterAttendee.GetFromAttendanceList( attendanceListForCurrentStatusFilter, checkinAreaFilter );
 
             return attendeesForCurrentStatusFilter;
         }
@@ -602,10 +614,10 @@ namespace RockWeb.Blocks.CheckIn.Manager
         /// <param name="currentDateTime">The current date time.</param>
         private void UpdateStatusFilterTabs( IList<RosterAttendee> attendees )
         {
-            var checkedInCount = attendees.Where( x => x.Status == RosterAttendeeStatus.CheckedIn ).Count();
-            var presentCount = attendees.Where( x => x.Status == RosterAttendeeStatus.Present ).Count();
-            var checkedOutCount = attendees.Where( x => x.Status == RosterAttendeeStatus.CheckedOut ).Count();
-            var allCount = checkedInCount + presentCount + checkedOutCount;
+            var checkedInCount = attendees.Where( x => x.MeetsRosterStatusFilter( RosterStatusFilter.CheckedIn ) ).Count();
+            var presentCount = attendees.Where( x => x.MeetsRosterStatusFilter( RosterStatusFilter.Present ) ).Count();
+            var checkedOutCount = attendees.Where( x => x.MeetsRosterStatusFilter( RosterStatusFilter.CheckedOut ) ).Count();
+            var allCount = attendees.Where( x => x.MeetsRosterStatusFilter( RosterStatusFilter.All ) ).Count();
 
             UpdateStatusFilterTabText( RosterStatusFilter.All, allCount );
             UpdateStatusFilterTabText( RosterStatusFilter.CheckedIn, checkedInCount );
@@ -735,9 +747,70 @@ namespace RockWeb.Blocks.CheckIn.Manager
             }
 
             var rockContext = new RockContext();
-            var attendanceList = new AttendanceService( rockContext ).GetByIds( attendanceIds ).ToList();
+            var attendanceList = new AttendanceService( rockContext )
+                .GetByIds( attendanceIds )
+                .Include( a => a.Occurrence )
+                .Include( a => a.PersonAlias.Person )
+                .ToList();
 
-            SetAttendancesAsCheckedOut( attendanceList, rockContext );
+            var scheduleIds = attendanceList.Select( a => a.Occurrence?.ScheduleId ?? 0 ).Distinct().ToList();
+            if ( scheduleIds.Count > 1 )
+            {
+                hfConfirmCheckoutAttendeeAttendanceIds.Value = attendanceIds.AsDelimited( "," );
+
+                var personName = attendanceList.FirstOrDefault()?.PersonAlias?.Person.FullName;
+                lConfirmCheckoutAttendee.Text = $"Which schedules would you like to check {personName} out of?";
+
+                // if there is more than one schedule, prompt for which one to check out of
+                var sortedScheduleList = new ScheduleService( rockContext ).GetByIds( scheduleIds ).AsNoTracking()
+                    .ToList().OrderByOrderAndNextScheduledDateTime();
+
+                cblSchedulesCheckoutAttendee.Items.Clear();
+
+                foreach ( var schedule in sortedScheduleList )
+                {
+                    string listItemText;
+                    if ( schedule.Name.IsNotNullOrWhiteSpace() )
+                    {
+                        listItemText = schedule.Name;
+                    }
+                    else
+                    {
+                        listItemText = schedule.FriendlyScheduleText;
+                    }
+
+                    cblSchedulesCheckoutAttendee.Items.Add( new ListItem( listItemText, schedule.Id.ToString() ) );
+                }
+
+                mdConfirmCheckoutAttendee.Show();
+            }
+            else
+            {
+                SetAttendancesAsCheckedOut( attendanceList, rockContext );
+
+                BindGrid();
+            }
+        }
+
+        /// <summary>
+        /// Handles the SaveClick event of the mdConfirmCheckoutAttendee control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void mdConfirmCheckoutAttendee_SaveClick( object sender, EventArgs e )
+        {
+            mdConfirmCheckoutAttendee.Hide();
+            var rockContext = new RockContext();
+
+            var attendanceIds = hfConfirmCheckoutAttendeeAttendanceIds.Value?.SplitDelimitedValues().AsIntegerList() ?? new List<int>();
+
+            var selectedScheduleIds = cblSchedulesCheckoutAttendee.SelectedValuesAsInt;
+
+            var attendancesToCheckout = new AttendanceService( rockContext )
+                .GetByIds( attendanceIds )
+                .Where( x => selectedScheduleIds.Contains( x.Occurrence.ScheduleId.Value ) ).ToList();
+
+            SetAttendancesAsCheckedOut( attendancesToCheckout, rockContext );
 
             BindGrid();
         }
@@ -937,7 +1010,7 @@ namespace RockWeb.Blocks.CheckIn.Manager
             using ( var rockContext = new RockContext() )
             {
                 // Populate the schedules for the 'Checkout All' to only include the schedules that are currently shown in the roster grid.
-                var displayedScheduleIds = GetAttendees( rockContext ).Select( a => a.ScheduleId ).Distinct().ToList();
+                var displayedScheduleIds = GetAttendees( rockContext ).SelectMany( a => a.ScheduleIds ).Distinct().ToList();
                 var sortedScheduleList = new ScheduleService( rockContext ).GetByIds( displayedScheduleIds ).AsNoTracking()
                     .ToList().OrderByOrderAndNextScheduledDateTime();
 
@@ -1135,6 +1208,28 @@ namespace RockWeb.Blocks.CheckIn.Manager
         }
 
         /// <summary>
+        /// Returns true of any if the checkin areas support Enable Presence
+        /// </summary>
+        /// <param name="checkinAreas">The checkin areas.</param>
+        /// <returns></returns>
+        private bool HasPresenceEnabled( GroupTypeCache[] checkinAreas )
+        {
+            var checkinConfigurationTypes = checkinAreas.Select( a => a.GetCheckInConfigurationType() );
+            return checkinConfigurationTypes.Any( a => a != null && a.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ENABLE_PRESENCE ).AsBoolean() );
+        }
+
+        /// <summary>
+        /// Returns true of any if the checkin areas support Allow Checkout
+        /// </summary>
+        /// <param name="checkinAreas">The checkin areas.</param>
+        /// <returns></returns>
+        private bool HasCheckoutEnabled( GroupTypeCache[] checkinAreas )
+        {
+            var checkinConfigurationTypes = checkinAreas.Select( a => a.GetCheckInConfigurationType() );
+            return checkinConfigurationTypes.Any( a => a != null && a.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ALLOW_CHECKOUT ).AsBoolean() );
+        }
+
+        /// <summary>
         /// Removes the unneeded status filters based on the whether any of the rooms have EnablePresence and/or AllowCheckout
         /// </summary>
         /// <param name="attendees">The attendees.</param>
@@ -1147,8 +1242,8 @@ namespace RockWeb.Blocks.CheckIn.Manager
 
             var checkinConfigurationTypes = checkinAreas.Select( a => a.GetCheckInConfigurationType() );
 
-            var showPresenceControls = checkinConfigurationTypes.Any( a => a != null && a.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ENABLE_PRESENCE ).AsBoolean() );
-            var showAllowCheckoutControls = checkinConfigurationTypes.Any( a => a != null && a.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ALLOW_CHECKOUT ).AsBoolean() );
+            var showPresenceControls = HasPresenceEnabled( checkinAreas );
+            var showAllowCheckoutControls = HasCheckoutEnabled( checkinAreas );
 
             if ( !showAllowCheckoutControls )
             {

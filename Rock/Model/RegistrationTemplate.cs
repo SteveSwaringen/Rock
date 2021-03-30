@@ -28,6 +28,7 @@ using Newtonsoft.Json;
 
 using Rock.Data;
 using Rock.Security;
+using Rock.Lava;
 
 namespace Rock.Model
 {
@@ -579,6 +580,15 @@ namespace Rock.Model
         [DataMember]
         public PaymentRedirectVendor? PaymentRedirectVendor { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is registration metering enabled.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is registration metering enabled; otherwise, <c>false</c>.
+        /// </value>
+        [DataMember]
+        public bool IsRegistrationMeteringEnabled { get; set; } = false;
+
         #endregion
 
         #region Virtual Properties
@@ -589,7 +599,7 @@ namespace Rock.Model
         /// <value>
         /// The category.
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual Category Category { get; set; }
 
         /// <summary>
@@ -598,7 +608,7 @@ namespace Rock.Model
         /// <value>
         /// The type of the group.
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual GroupType GroupType { get; set; }
 
         /// <summary>
@@ -679,7 +689,7 @@ namespace Rock.Model
         /// <value>
         /// Collection of child pages
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual ICollection<RegistrationInstance> Instances
         {
             get { return _registrationInstances ?? ( _registrationInstances = new Collection<RegistrationInstance>() ); }
