@@ -102,7 +102,6 @@
     <Compile Include="Rock\Lava\Filters\SerializationFilterTests.cs" />
     <Compile Include="Rock\Lava\Filters\TextFilterTests.cs" />
     <Compile Include="Rock\Lava\DynamicObjectTests.cs" />
-    <Compile Include="Rock\Lava\LavaHelperTests.cs" />
     <Compile Include="Rock\Lava\LavaUnitTestHelper.cs" />
     <Compile Include="Rock\Lava\LavaTypeAttributesTests.cs" />
     <Compile Include="Rock\Lava\LavaUnitTestBase.cs" />
