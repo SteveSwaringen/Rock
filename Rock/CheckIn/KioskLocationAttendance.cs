@@ -22,7 +22,6 @@ using System.Runtime.Serialization;
 
 using Rock.Model;
 using Rock.Web.Cache;
-using Rock.Web.Cache.Entities;
 
 namespace Rock.CheckIn
 {

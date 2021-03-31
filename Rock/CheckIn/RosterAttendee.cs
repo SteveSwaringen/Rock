@@ -23,7 +23,6 @@ using System.Text;
 using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
-using Rock.Web.Cache.Entities;
 
 namespace Rock.CheckIn
 {

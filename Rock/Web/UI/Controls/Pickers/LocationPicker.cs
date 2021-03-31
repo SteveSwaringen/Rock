@@ -20,7 +20,7 @@ using System.Web.UI.WebControls;
 
 using Rock.Data;
 using Rock.Model;
-using Rock.Web.Cache.Entities;
+using Rock.Web.Cache;
 
 namespace Rock.Web.UI.Controls
 {
@@ -421,7 +421,7 @@ namespace Rock.Web.UI.Controls
             }
             else
             {
-                ViewState["LocationId"] = Location.Id;
+                ViewState["LocationId"] = Location?.Id;
             }
 
             return base.SaveViewState();

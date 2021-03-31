@@ -2,16 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 using Rock.Data;
 
-namespace Rock.Web.Cache.Entities
+namespace Rock.Web.Cache
 {
     /// <summary>
     /// Information about a named location that is required by the rendering engine.
-    /// This information will be cached by the engine
+    /// This information will be cached by the engine.
     /// </summary>
     [Serializable]
     [DataContract]
@@ -19,21 +17,11 @@ namespace Rock.Web.Cache.Entities
     {
         #region Properties
 
-        /// <summary>
-        /// Gets or sets the name.
-        /// </summary>
-        /// <value>
-        /// The name.
-        /// </value>
+        /// <inheritdoc cref="Rock.Model.Location.Name" />
         [DataMember]
         public string Name { get; private set; }
 
-        /// <summary>
-        /// Gets the campus identifier.
-        /// </summary>
-        /// <value>
-        /// The campus identifier.
-        /// </value>
+        /// <inheritdoc cref="Rock.Model.Location.CampusId" />
         [DataMember]
         public int? CampusId
         {
@@ -62,21 +50,15 @@ namespace Rock.Web.Cache.Entities
             }
         }
 
-        /// <summary>
-        /// Gets the parent location identifier.
-        /// </summary>
-        /// <value>
-        /// The parent location identifier.
-        /// </value>
+        /// <inheritdoc cref="Rock.Model.Location.ParentLocationId" />
         [DataMember]
         public int? ParentLocationId { get; private set; }
 
-        /// <summary>
-        /// Gets the parent location.
-        /// </summary>
-        /// <value>
-        /// The parent location.
-        /// </value>
+        /// <inheritdoc cref="Rock.Model.Location.IsActive" />
+        [DataMember]
+        public bool IsActive { get; private set; }
+
+        /// <inheritdoc cref="Rock.Model.Location.ParentLocation" />
         public NamedLocationCache ParentLocation => this.ParentLocationId.HasValue ? NamedLocationCache.Get( ParentLocationId.Value ) : null;
 
         #endregion Properties
@@ -86,16 +68,12 @@ namespace Rock.Web.Cache.Entities
         /// <summary>
         /// Gets the CampusID associated with the Location from the location or from the location's parent path
         /// </summary>
-        /// <param name="locationId">The location identifier.</param>
         /// <returns></returns>
-        public int? GetCampusIdForLocation( int? locationId )
+        public int? GetCampusIdForLocation()
         {
-            if ( !locationId.HasValue )
-            {
-                return null;
-            }
+            var locationId = this.Id;
 
-            var location = Get( locationId.Value );
+            var location = Get( locationId );
             int? campusId = location.CampusId;
             if ( campusId.HasValue )
             {
@@ -157,11 +135,32 @@ namespace Rock.Web.Cache.Entities
             {
                 if ( Name.IsNullOrWhiteSpace() )
                 {
+                    // just in case this isn't a named location, expire after 10 minutes
                     return new TimeSpan( 0, 10, 0 );
                 }
 
                 return base.Lifespan;
             }
+        }
+
+        /// <summary>
+        /// Not Supported on NamedLocationCache
+        /// </summary>
+        /// <returns></returns>
+        public static new List<NamedLocationCache> All()
+        {
+            return All( null );
+        }
+
+        /// <summary>
+        /// Not Supported on NamedLocationCache
+        /// </summary>
+        /// <returns></returns>
+        public static new List<NamedLocationCache> All( RockContext rockContext )
+        {
+            // since there could be a very large number of Locations in the database,
+            // and we really only want to support Named locations, don't support All()
+            throw new NotSupportedException("NameLocationCache does not support All()");
         }
 
         /// <summary>
@@ -180,6 +179,7 @@ namespace Rock.Web.Cache.Entities
 
             this.Name = location.Name;
             this.ParentLocationId = location.ParentLocationId;
+            this.IsActive = location.IsActive;
         }
 
         /// <summary>
