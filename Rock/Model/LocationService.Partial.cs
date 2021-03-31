@@ -30,6 +30,16 @@ namespace Rock.Model
     /// </summary>
     public partial class LocationService
     {
+        public override Location Get( Guid guid )
+        {
+            return base.Get( guid );
+        }
+
+        public override Location Get( int id )
+        {
+            return base.Get( id );
+        }
+
         /// <summary>
         /// Returns the first <see cref="Rock.Model.Location" /> where the address matches the provided address, otherwise the address will be saved as a new location.
         /// </summary>

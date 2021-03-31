@@ -21,6 +21,7 @@ using System.Web.UI.WebControls;
 
 using Rock.Data;
 using Rock.Model;
+using Rock.Web.Cache.Entities;
 
 namespace Rock.Web.UI.Controls
 {
@@ -41,9 +42,45 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
+        /// Sets the value from location identifier.
+        /// </summary>
+        /// <param name="locationId">The location identifier.</param>
+        public void SetValueFromLocationId( int? locationId )
+        {
+            if ( locationId != null )
+            {
+                ItemId = locationId.ToString();
+                var location = NamedLocationCache.Get( locationId.Value );
+                List<int> parentLocationIds = new List<int>();
+                NamedLocationCache parentLocation = location.ParentLocation;
+
+                while ( parentLocation != null )
+                {
+                    if ( parentLocationIds.Contains( parentLocation.Id ) )
+                    {
+                        // infinite recursion
+                        break;
+                    }
+
+                    parentLocationIds.Insert( 0, parentLocation.Id );
+                    parentLocation = parentLocation.ParentLocation;
+                }
+
+                InitialItemParentIds = parentLocationIds.AsDelimited( "," );
+                ItemName = location.Name;
+            }
+            else
+            {
+                ItemId = Constants.None.IdValue;
+                ItemName = Constants.None.TextHtml;
+            }
+        }
+
+        /// <summary>
         /// Sets the value.
         /// </summary>
         /// <param name="location">The location.</param>
+        [Obsolete("Use SetValueFromLocationId")]
         public void SetValue( Rock.Model.Location location )
         {
             if ( location != null )
@@ -60,7 +97,7 @@ namespace Rock.Web.UI.Controls
                         break;
                     }
 
-                    parentLocationIds.Insert( 0, parentLocation.Id ); ;
+                    parentLocationIds.Insert( 0, parentLocation.Id );
                     parentLocation = parentLocation.ParentLocation;
                 }
 
@@ -126,8 +163,7 @@ namespace Rock.Web.UI.Controls
         /// </summary>
         protected override void SetValueOnSelect()
         {
-            var item = new LocationService( new RockContext() ).Get( int.Parse( ItemId ) );
-            this.SetValue( item );
+            this.SetValueFromLocationId( ItemId.AsIntegerOrNull() );
         }
 
         /// <summary>

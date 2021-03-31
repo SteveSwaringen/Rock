@@ -22,6 +22,7 @@ using System.Runtime.Serialization;
 
 using Rock.Model;
 using Rock.Web.Cache;
+using Rock.Web.Cache.Entities;
 
 namespace Rock.CheckIn
 {
@@ -130,7 +131,7 @@ namespace Rock.CheckIn
         {
             using ( var rockContext = new Rock.Data.RockContext() )
             {
-                var location = new LocationService( rockContext ).GetSelect( id, s => new { s.Id, s.Name } );
+                var location = NamedLocationCache.Get( id );
                 if ( location == null )
                 {
                     return null;
