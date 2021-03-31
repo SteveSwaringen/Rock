@@ -15,7 +15,7 @@
                 <h1 class="panel-title"><i class="fa fa-cloud-download"></i> Rock Update</h1>
             </div>
             <div class="panel-body">
-                 <Rock:NotificationBox ID="nbVersionIssue" runat="server" NotificationBoxType="Danger" Visible="false">
+                 <Rock:NotificationBox ID="nbVersionIssue" runat="server" NotificationBoxType="Warning" Visible="false">
                      <strong><i class="fa fa-exclamation-triangle"></i> .NET Framework Update Required</strong>
                      <p>As of Rock McKinley v13, Rock requires Microsoft .NET Framework 4.7.2 or greater on the hosting server.
                         This framework version was released by Microsoft on April 30th, 2018.</p>

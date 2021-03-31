@@ -88,6 +88,11 @@ namespace RockWeb.Blocks.Core
             _isEarlyAccessOrganization = rockUpdateService.IsEarlyAccessInstance();
             _installedVersion = new Version( VersionInfo.GetRockSemanticVersionNumber() );
 
+            if ( rockUpdateService.GetRockReleaseProgram() != RockReleaseProgram.Production )
+            {
+                nbRepoWarning.Visible = true;
+            }
+
             DisplayRockVersion();
             if ( !IsPostBack )
             {
@@ -128,10 +133,17 @@ namespace RockWeb.Blocks.Core
                     nbSqlServerVersionIssue.Visible = true;
                 }
 
-                _releases = rockUpdateService.GetReleasesList( _installedVersion );
+                _releases = rockUpdateService
+                    .GetReleasesList( _installedVersion )
+                    .OrderByDescending( p => new Version( p.SemanticVersion ) )
+                    .ToList();
 
                 if ( _releases.Count > 0 )
                 {
+                    if ( new Version( _releases.Last().SemanticVersion ) >= new Version( "1.13.0" ) )
+                    {
+                        nbVersionIssue.NotificationBoxType = Rock.Web.UI.Controls.NotificationBoxType.Danger;
+                    }
                     pnlUpdatesAvailable.Visible = true;
                     pnlUpdates.Visible = true;
                     pnlNoUpdates.Visible = false;

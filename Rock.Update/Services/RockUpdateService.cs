@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Net;
 using Newtonsoft.Json;
 using RestSharp;
@@ -30,10 +31,15 @@ namespace Rock.Update.Services
     /// </summary>
     public class RockUpdateService : IRockUpdateService
     {
-        private const string GET_RELEASE_LIST_URL = "https://www.rockrms.com/api/RockUpdate/GetReleasesList";
-        private const string GET_RELEASE_LIST_SINCE_URL = "https://www.rockrms.com/api/RockUpdate/GetReleasesListSinceVersion";
-        private const string EARLY_ACCESS_URL = "https://www.rockrms.com/api/RockUpdate/GetEarlyAccessStatus";
-        private const string EARLY_ACCESS_REQUEST_URL = "https://www.rockrms.com/earlyaccessissues?RockInstanceId=";
+        private const string GET_RELEASE_LIST_URL = "api/RockUpdate/GetReleasesList";
+        private const string GET_RELEASE_LIST_SINCE_URL = "api/RockUpdate/GetReleasesListSinceVersion";
+        private const string EARLY_ACCESS_URL = "api/RockUpdate/GetEarlyAccessStatus";
+        private const string EARLY_ACCESS_REQUEST_URL = "earlyaccessissues?RockInstanceId=";
+
+        private string BaseUrl
+        {
+            get => ConfigurationManager.AppSettings["RockStoreUrl"].EnsureTrailingForwardslash();
+        }
 
         /// <summary>
         /// Gets the releases list from the rock server.
@@ -53,7 +59,7 @@ namespace Rock.Update.Services
                 request.AddParameter( "sinceVersion", version.ToString() );
             }
 
-            var client = new RestClient( version != null ? GET_RELEASE_LIST_SINCE_URL : GET_RELEASE_LIST_URL );
+            var client = new RestClient( BaseUrl + ( version != null ? GET_RELEASE_LIST_SINCE_URL : GET_RELEASE_LIST_URL ) );
             var response = client.Execute( request );
 
             if ( response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Accepted )
@@ -70,7 +76,7 @@ namespace Rock.Update.Services
         /// <returns></returns>
         public bool IsEarlyAccessInstance()
         {
-            var client = new RestClient( EARLY_ACCESS_URL );
+            var client = new RestClient( BaseUrl + EARLY_ACCESS_URL );
             var request = new RestRequest( Method.GET );
             request.RequestFormat = DataFormat.Json;
 
@@ -90,7 +96,7 @@ namespace Rock.Update.Services
         /// <returns></returns>
         public string GetRockEarlyAccessRequestUrl()
         {
-            return $"{EARLY_ACCESS_REQUEST_URL}{Web.SystemSettings.GetRockInstanceId()}";
+            return $"{BaseUrl}{EARLY_ACCESS_REQUEST_URL}{Web.SystemSettings.GetRockInstanceId()}";
         }
 
         /// <summary>

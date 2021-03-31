@@ -38,6 +38,7 @@ namespace Rock.Update
         private const string BACKUP_FOLDER = "App_Data\\RockBackup";
         private const string TRANSFORM_FILE_SUFFIX = ".rock.xdt";
         private const string CONTENT_PATH = "content/";
+        private const string CONTENT_PATH_ALT = "content\\";
 
         private readonly string _backupPath = Path.Combine( FileManagementHelper.ROOT_PATH, BACKUP_FOLDER );
         private readonly IRockUpdateService _rockUpdateService;
@@ -279,15 +280,18 @@ namespace Rock.Update
         {
             var contentFilesToProcess = packageZip
                 .Entries
-                .Where( e => e.FullName.StartsWith( CONTENT_PATH, StringComparison.OrdinalIgnoreCase ) )
+                .Where( e => e.FullName.StartsWith( CONTENT_PATH, StringComparison.OrdinalIgnoreCase )
+                    || e.FullName.StartsWith( CONTENT_PATH_ALT, StringComparison.OrdinalIgnoreCase ) )
                 .Where( e => !e.FullName.EndsWith( TRANSFORM_FILE_SUFFIX, StringComparison.OrdinalIgnoreCase ) );
 
             // unzip content folder and process xdts
             foreach ( ZipArchiveEntry entry in contentFilesToProcess )
             {
                 // process all content files
-                string fullpath = Path.Combine( FileManagementHelper.ROOT_PATH, entry.FullName.Replace( CONTENT_PATH, string.Empty ) );
-                string directory = Path.GetDirectoryName( fullpath ).Replace( CONTENT_PATH, string.Empty );
+                string fullpath = Path.Combine( FileManagementHelper.ROOT_PATH, entry.FullName.Replace( CONTENT_PATH, string.Empty ).Replace( CONTENT_PATH_ALT, string.Empty ) );
+                fullpath = Path.Combine( FileManagementHelper.ROOT_PATH, entry.FullName.Replace( CONTENT_PATH, string.Empty ).Replace( CONTENT_PATH_ALT, string.Empty ) );
+
+                string directory = Path.GetDirectoryName( fullpath ).Replace( CONTENT_PATH, string.Empty ).Replace( CONTENT_PATH_ALT, string.Empty );
 
                 ThrowTestExceptions( Path.GetFileNameWithoutExtension( entry.FullName ) );
 
@@ -375,13 +379,13 @@ namespace Rock.Update
         {
             var transformFilesToProcess = packageZip
                 .Entries
-                .Where( e => e.FullName.StartsWith( CONTENT_PATH, StringComparison.OrdinalIgnoreCase ) )
+                .Where( e => e.FullName.StartsWith( CONTENT_PATH, StringComparison.OrdinalIgnoreCase ) || e.FullName.StartsWith( CONTENT_PATH_ALT, StringComparison.OrdinalIgnoreCase ) )
                 .Where( e => e.FullName.EndsWith( TRANSFORM_FILE_SUFFIX, StringComparison.OrdinalIgnoreCase ) );
 
             foreach ( ZipArchiveEntry entry in transformFilesToProcess )
             {
                 // process xdt
-                string filename = entry.FullName.Replace( CONTENT_PATH, string.Empty );
+                string filename = entry.FullName.Replace( CONTENT_PATH, string.Empty ).Replace( CONTENT_PATH_ALT, string.Empty );
                 string transformTargetFile = Path.Combine( FileManagementHelper.ROOT_PATH, filename.Substring( 0, filename.LastIndexOf( TRANSFORM_FILE_SUFFIX ) ) );
 
                 // process transform

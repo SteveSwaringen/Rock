@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 
+using System.Configuration;
 using RestSharp;
 using Rock.Update.Interfaces;
 using Rock.Update.Models;
@@ -26,7 +27,12 @@ namespace Rock.Update.Services
     /// <seealso cref="Rock.Update.Interfaces.IRockImpactService" />
     public class RockImpactService : IRockImpactService
     {
-        private const string SEND_IMPACT_URL = "http://www.rockrms.com/api/impacts/save";
+        private const string SEND_IMPACT_URL = "api/impacts/save";
+
+        private string BaseUrl
+        {
+            get => ConfigurationManager.AppSettings["RockStoreUrl"].EnsureTrailingForwardslash();
+        }
 
         /// <summary>
         /// Sends the impact statistics to spark.
@@ -34,7 +40,7 @@ namespace Rock.Update.Services
         /// <param name="impactStatistic">The impact statistic.</param>
         public void SendImpactStatisticsToSpark( ImpactStatistic impactStatistic )
         {
-            var client = new RestClient( SEND_IMPACT_URL );
+            var client = new RestClient( BaseUrl + SEND_IMPACT_URL );
             var request = new RestRequest( Method.POST );
             request.RequestFormat = DataFormat.Json;
             request.AddBody( impactStatistic );
