@@ -23,6 +23,7 @@ using System.Text;
 using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
+using Rock.Web.Cache.Entities;
 
 namespace Rock.CheckIn
 {
@@ -49,7 +50,6 @@ namespace Rock.CheckIn
         public RosterAttendee( Rock.Model.Person person )
         {
             _person = person;
-            
         }
 
         #region Properties
@@ -84,7 +84,7 @@ namespace Rock.CheckIn
         /// <value>
         /// The attendances.
         /// </value>
-        private List<Attendance> Attendances { get; set; } = new List<Attendance>();
+        private List<RosterAttendeeAttendance> Attendances { get; set; } = new List<RosterAttendeeAttendance>();
 
         /// <summary>
         /// Gets the person's full name.
@@ -547,13 +547,13 @@ namespace Rock.CheckIn
         /// </summary>
         /// <param name="attendance">The attendance.</param>
         /// <param name="checkinAreaPathsLookup">The checkin area paths lookup.</param>
-        private void SetAttendanceInfo( Attendance attendance, Dictionary<int, CheckinAreaPath> checkinAreaPathsLookup )
+        private void SetAttendanceInfo( RosterAttendeeAttendance attendance, Dictionary<int, CheckinAreaPath> checkinAreaPathsLookup )
         {
             // Keep track of each Attendance ID tied to this Attendee so we can manage them all as a group.
             this.Attendances.Add( attendance, true );
 
             // Tag(s).
-            string tag = attendance.AttendanceCode?.Code;
+            string tag = attendance.AttendanceCode;
 
             if ( tag.IsNotNullOrWhiteSpace() && !this.UniqueTags.Contains( tag, StringComparer.OrdinalIgnoreCase ) )
             {
@@ -561,7 +561,7 @@ namespace Rock.CheckIn
             }
 
             // Service Time(s).
-            string serviceTime = attendance.Occurrence?.Schedule?.Name;
+            string serviceTime = attendance.Schedule?.Name;
 
             if ( serviceTime.IsNotNullOrWhiteSpace() && !this.UniqueServiceTimes.Contains( serviceTime, StringComparer.OrdinalIgnoreCase ) )
             {
@@ -578,9 +578,9 @@ namespace Rock.CheckIn
             // Check-in Time: if this Attendee has multiple AttendanceOccurrences, the latest StartDateTime value among them wins.
             this.CheckInTime = latestAttendance.StartDateTime;
 
-            this.GroupTypeId = latestAttendance.Occurrence?.Group?.GroupTypeId;
+            this.GroupTypeId = latestAttendance.GroupTypeId;
 
-            this.GroupName = latestAttendance.Occurrence?.Group?.Name;
+            this.GroupName = latestAttendance.GroupName;
 
             if ( GroupTypeId.HasValue )
             {
@@ -590,11 +590,11 @@ namespace Rock.CheckIn
             this.IsFirstTime = latestAttendance?.IsFirstTime ?? false;
 
             // ScheduleId should have a value, but just in case, we'll do some null safety.
-            this.ScheduleId = latestAttendance.Occurrence?.ScheduleId ?? 0;
+            this.ScheduleId = latestAttendance.ScheduleId ?? 0;
 
-            this.ScheduleIds = this.Attendances.Select( a => a.Occurrence?.ScheduleId ?? 0 ).Distinct().ToArray();
+            this.ScheduleIds = this.Attendances.Select( a => a.ScheduleId ?? 0 ).Distinct().ToArray();
 
-            this.RoomName = latestAttendance.Occurrence?.Location?.Name;
+            this.RoomName = NamedLocationCache.Get( latestAttendance.LocationId ?? 0 )?.Name;
         }
 
         /// <summary>
@@ -625,7 +625,7 @@ namespace Rock.CheckIn
         /// <param name="attendance">The attendance.</param>
         /// <param name="rosterStatusFilter">The roster status filter.</param>
         /// <returns></returns>
-        public static bool AttendanceMeetsRosterStatusFilter( Attendance attendance, RosterStatusFilter rosterStatusFilter )
+        public static bool AttendanceMeetsRosterStatusFilter( RosterAttendeeAttendance attendance, RosterStatusFilter rosterStatusFilter )
         {
             RosterAttendeeStatus rosterAttendeeStatus = GetRosterAttendeeStatus( attendance.EndDateTime, attendance.PresentDateTime );
 
@@ -674,7 +674,7 @@ namespace Rock.CheckIn
         /// </summary>
         /// <param name="attendanceList">The attendance list.</param>
         /// <returns></returns>
-        public static IList<RosterAttendee> GetFromAttendanceList( IList<Attendance> attendanceList )
+        public static IList<RosterAttendee> GetFromAttendanceList( IList<RosterAttendeeAttendance> attendanceList )
         {
             return GetFromAttendanceList( attendanceList, null );
         }
@@ -687,14 +687,14 @@ namespace Rock.CheckIn
         /// <param name="attendanceList">The attendance list.</param>
         /// <param name="selectedCheckinArea">The selected checkin area (or null for all areas).</param>
         /// <returns></returns>
-        public static IList<RosterAttendee> GetFromAttendanceList( IList<Attendance> attendanceList, GroupTypeCache selectedCheckinArea )
+        public static IList<RosterAttendee> GetFromAttendanceList( IList<RosterAttendeeAttendance> attendanceList, GroupTypeCache selectedCheckinArea )
         {
             if ( !attendanceList.Any() )
             {
                 return new List<RosterAttendee>();
             }
 
-            var groupTypeIds = attendanceList.Select( a => a.Occurrence.Group.GroupTypeId ).Distinct();
+            var groupTypeIds = attendanceList.Select( a => a.GroupTypeId ).Distinct();
             var groupTypes = groupTypeIds.Select( a => GroupTypeCache.Get( a ) ).Where( a => a != null );
 
             var groupTypeIdsWithAllowCheckout = groupTypes
@@ -722,7 +722,7 @@ namespace Rock.CheckIn
                     .ToDictionary( k => k.GroupTypeId, v => v );
             }
 
-            var personIds = attendanceList.Select( a => a.PersonAlias.PersonId ).Distinct().ToList();
+            var personIds = attendanceList.Select( a => a.PersonId ).Distinct().ToList();
 
             var entityTypeIdPerson = EntityTypeCache.GetId<Rock.Model.Person>() ?? 0;
             const string Person_Allergy = "Allergy";
@@ -753,7 +753,7 @@ namespace Rock.CheckIn
             foreach ( var attendance in attendanceList )
             {
                 // Create an Attendee for each unique Person within the Attendance records.
-                var person = attendance.PersonAlias.Person;
+                var person = attendance.Person;
 
                 RosterAttendee attendee = attendees.FirstOrDefault( a => a.PersonGuid == person.Guid );
                 if ( attendee == null )
@@ -764,8 +764,8 @@ namespace Rock.CheckIn
                     attendees.Add( attendee );
                 }
 
-                attendee.RoomHasAllowCheckout = groupTypeIdsWithAllowCheckout.Contains( attendance.Occurrence.Group.GroupTypeId );
-                attendee.RoomHasEnablePresence = groupTypeIdsWithEnablePresence.Contains( attendance.Occurrence.Group.GroupTypeId );
+                attendee.RoomHasAllowCheckout = groupTypeIdsWithAllowCheckout.Contains( attendance.GroupTypeId );
+                attendee.RoomHasEnablePresence = groupTypeIdsWithEnablePresence.Contains( attendance.GroupTypeId );
 
                 // Add the attendance-specific property values.
                 attendee.SetAttendanceInfo( attendance, checkinAreaPathsLookup );
