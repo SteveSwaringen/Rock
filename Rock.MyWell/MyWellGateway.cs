@@ -21,8 +21,11 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Text;
 using System.Web.UI;
+
 using Newtonsoft.Json;
+
 using RestSharp;
+
 using Rock.Attribute;
 using Rock.Financial;
 using Rock.Model;
@@ -501,7 +504,7 @@ namespace Rock.MyWell
 
         /// <summary>
         /// Updates the customer address.
-        /// https://sandbox.gotnpgateway.com/docs/api/#update-a-specific-customer-address
+        /// https://sandbox.gotnpgateway.com/docs/api/#update-address-token-deprecated
         /// </summary>
         /// <param name="gatewayUrl">The gateway URL.</param>
         /// <param name="apiKey">The API key.</param>
@@ -1059,7 +1062,7 @@ namespace Rock.MyWell
                 var exception = new MyWellGatewayException( $"Error processing MyWell transaction. Message:  {response.Message}, " +
                     $"processorResponseCode: {response.ProcessorResponseCode}, " +
                     $"processorResponseText: {response.ProcessorResponseText} " );
-                
+
                 ExceptionLogService.LogException( exception );
 
                 return null;
@@ -1337,7 +1340,18 @@ namespace Rock.MyWell
                     subscriptionParameters.Customer = new SubscriptionCustomer { Id = referencedPaymentInfo.GatewayPersonIdentifier };
                 }
 
-                var subscriptionResult = this.UpdateSubscription( gatewayUrl, apiKey, subscriptionId, subscriptionParameters );
+                SubscriptionResponse subscriptionResult;
+                var subscriptionStatusResult = this.GetSubscription( gatewayUrl, apiKey, subscriptionId );
+                if ( subscriptionStatusResult?.IsCancelled() == true )
+                {
+                    subscriptionResult = this.CreateSubscription( gatewayUrl, apiKey, subscriptionParameters );
+                    
+                }
+                else
+                {
+                    subscriptionResult = this.UpdateSubscription( gatewayUrl, apiKey, subscriptionId, subscriptionParameters );
+                }
+
                 if ( !subscriptionResult.IsSuccessStatus() )
                 {
                     // Write decline/error as an exception.
@@ -1348,6 +1362,14 @@ namespace Rock.MyWell
                     errorMessage = subscriptionResult.Message;
 
                     return false;
+                }
+
+                subscriptionId = subscriptionResult?.Data?.Id;
+
+                if ( subscriptionId != scheduledTransaction.GatewayScheduleId )
+                {
+                    referencedPaymentInfo.TransactionCode = subscriptionId;
+                    scheduledTransaction.GatewayScheduleId = subscriptionId;
                 }
             }
             else
@@ -1380,6 +1402,7 @@ namespace Rock.MyWell
 
             scheduledTransaction.FinancialPaymentDetail = PopulatePaymentInfo( paymentInfo, customerInfo?.Data?.PaymentMethod, customerInfo?.Data?.BillingAddress );
             scheduledTransaction.TransactionCode = customerId;
+
             try
             {
                 GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
@@ -1469,6 +1492,11 @@ namespace Rock.MyWell
                 }
 
                 scheduledTransaction.LastStatusUpdateDateTime = RockDateTime.Now;
+
+                if ( subscriptionResult.IsCancelled() )
+                {
+                    scheduledTransaction.NextPaymentDate = null;
+                }
 
                 errorMessage = string.Empty;
                 return true;
