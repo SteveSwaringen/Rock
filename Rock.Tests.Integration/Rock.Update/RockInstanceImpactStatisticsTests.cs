@@ -15,6 +15,8 @@
 // </copyright>
 
 using System;
+using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -32,10 +34,42 @@ namespace Rock.Tests.Integration.RockUpdate
     [TestClass]
     public class RockInstanceImpactStatisticsTests : BaseRockTest
     {
-        [TestCleanup]
-        public void TestCleanup()
+        private Mock<RockContext> _mockRockContext = null;
+        private List<Person> _people = new List<Person>();
+
+        [TestInitialize]
+        public void TestInitialize()
         {
-            CleanupTestData();
+            var data = _people.AsQueryable();
+            var mockSet = new Mock<DbSet<Person>>();
+            mockSet.As<IQueryable<Person>>().Setup( m => m.Provider ).Returns( () => { return data.Provider; } );
+            mockSet.As<IQueryable<Person>>().Setup( m => m.Expression ).Returns( () => { return data.Expression; } );
+            mockSet.As<IQueryable<Person>>().Setup( m => m.ElementType ).Returns( () => { return data.ElementType; } );
+            mockSet.As<IQueryable<Person>>().Setup( m => m.GetEnumerator() ).Returns( () => { return _people.GetEnumerator(); } );
+
+            var globalAttributes = GlobalAttributesCache.Get();
+            var locations = new List<Location>
+            {
+                new Location
+                {
+                    Guid = globalAttributes.GetValue( "OrganizationAddress" ).AsGuid(),
+                    Name = "Test Organization Location"
+                }
+            };
+
+            var locationQueryable = locations.AsQueryable();
+            var mockLocationSet = new Mock<DbSet<Location>>();
+            mockLocationSet.As<IQueryable<Location>>().Setup( m => m.Provider ).Returns( () => { return locationQueryable.Provider; } );
+            mockLocationSet.As<IQueryable<Location>>().Setup( m => m.Expression ).Returns( () => { return locationQueryable.Expression; } );
+            mockLocationSet.As<IQueryable<Location>>().Setup( m => m.ElementType ).Returns( () => { return locationQueryable.ElementType; } );
+            mockLocationSet.As<IQueryable<Location>>().Setup( m => m.GetEnumerator() ).Returns( () => { return locations.GetEnumerator(); } );
+
+            _mockRockContext = new Mock<RockContext>();
+            _mockRockContext.Setup( m => m.People ).Returns( mockSet.Object );
+            _mockRockContext.Setup( m => m.Set<Person>() ).Returns( mockSet.Object );
+
+            _mockRockContext.Setup( m => m.Locations ).Returns( mockLocationSet.Object );
+            _mockRockContext.Setup( m => m.Set<Location>() ).Returns( mockLocationSet.Object );
         }
 
         [TestMethod]
@@ -46,7 +80,7 @@ namespace Rock.Tests.Integration.RockUpdate
             Thread.Sleep( 500 );
 
             var rockImpactService = new Mock<IRockImpactService>();
-            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object );
+            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object, _mockRockContext.Object );
 
             rockInstanceImpactStatistics.SendImpactStatisticsToSpark( false, "1.13.0", "0.0.0.0", "data" );
             rockImpactService.Verify( x => x.SendImpactStatisticsToSpark( It.IsAny<ImpactStatistic>() ), Times.Never );
@@ -55,12 +89,10 @@ namespace Rock.Tests.Integration.RockUpdate
         [TestMethod]
         public void SendImpactStatisticsToSpark_ShouldNotSendDataToServiceWhenFewerThen100Records()
         {
-            EnsureFewerThen100Records();
-
             SystemSettings.SetValue( SystemKey.SystemSetting.SAMPLEDATA_DATE, string.Empty );
 
             var rockImpactService = new Mock<IRockImpactService>();
-            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object );
+            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object, _mockRockContext.Object );
 
             rockInstanceImpactStatistics.SendImpactStatisticsToSpark( false, "1.13.0", "0.0.0.0", "data" );
             rockImpactService.Verify( x => x.SendImpactStatisticsToSpark( It.IsAny<ImpactStatistic>() ), Times.Never );
@@ -74,7 +106,7 @@ namespace Rock.Tests.Integration.RockUpdate
             EnsureMoreThen100Records();
 
             var rockImpactService = new Mock<IRockImpactService>();
-            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object );
+            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object, _mockRockContext.Object );
 
             rockInstanceImpactStatistics.SendImpactStatisticsToSpark( false, "1.13.0", "0.0.0.0", "data" );
             rockImpactService.Verify( x => x.SendImpactStatisticsToSpark( It.IsAny<ImpactStatistic>() ), Times.Once );
@@ -93,7 +125,7 @@ namespace Rock.Tests.Integration.RockUpdate
             EnsureMoreThen100Records();
 
             var rockImpactService = new Mock<IRockImpactService>();
-            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object );
+            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object, _mockRockContext.Object );
 
             rockInstanceImpactStatistics.SendImpactStatisticsToSpark( false, expectedVersion, expectedIpAddress, "data" );
             rockImpactService.Verify(
@@ -127,14 +159,10 @@ namespace Rock.Tests.Integration.RockUpdate
             SystemSettings.SetValue( SystemKey.SystemSetting.SAMPLEDATA_DATE, string.Empty );
 
             EnsureMoreThen100Records();
-            var expectedNumberOfRecords = 0;
-            using ( var rockContext = new RockContext() )
-            {
-                expectedNumberOfRecords = new PersonService( rockContext ).Queryable( includeDeceased: false, includeBusinesses: false ).Count();
-            }
+            var expectedNumberOfRecords = new PersonService( _mockRockContext.Object ).Queryable( includeDeceased: false, includeBusinesses: false ).Count();
 
             var rockImpactService = new Mock<IRockImpactService>();
-            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object );
+            var rockInstanceImpactStatistics = new RockInstanceImpactStatistics( rockImpactService.Object, _mockRockContext.Object );
 
             rockInstanceImpactStatistics.SendImpactStatisticsToSpark( true, expectedVersion, expectedIpAddress, "data" );
             rockImpactService.Verify(
@@ -152,74 +180,21 @@ namespace Rock.Tests.Integration.RockUpdate
 
         private void EnsureMoreThen100Records()
         {
-            using ( var rockContext = new RockContext() )
-            {
-                var personService = new PersonService( rockContext );
-                var numberOfActiveRecords = personService.Queryable( includeDeceased: false, includeBusinesses: false ).Count();
-                var numberOfRecordsToCreate = 101 - numberOfActiveRecords;
+            var numberOfActiveRecords = _people.Count;
+            var numberOfRecordsToCreate = 101 - numberOfActiveRecords;
+            var recordTypePersonId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() );
 
-                while ( numberOfRecordsToCreate > 0 )
+            while ( numberOfRecordsToCreate > 0 )
+            {
+                var person = new Person
                 {
-                    var person = new Person
-                    {
-                        FirstName = Guid.NewGuid().ToString(),
-                        LastName = Guid.NewGuid().ToString(),
-                        Email = $"{Guid.NewGuid()}@test.com",
-                    };
-                    personService.Add( person );
-                    numberOfRecordsToCreate--;
-                }
-
-                rockContext.SaveChanges();
-            }
-        }
-
-        private void EnsureFewerThen100Records()
-        {
-            using ( var rockContext = new RockContext() )
-            {
-                var personService = new PersonService( rockContext );
-                var numberOfActiveRecords = personService.Queryable( includeDeceased: false, includeBusinesses: false ).Count();
-                var numberOfRecordsToRemove = numberOfActiveRecords - 50;
-
-                while ( numberOfRecordsToRemove > 0 )
-                {
-                    var person = personService.Queryable( includeDeceased: false, includeBusinesses: false ).FirstOrDefault();
-                    person.ForeignKey = "RockImpactTest";
-                    person.RecordStatusReasonValueId = DefinedValueCache.Get( SystemGuid.DefinedValue.PERSON_RECORD_STATUS_REASON_DECEASED.AsGuid() ).Id;
-                    person.RecordStatusValueId = DefinedValueCache.Get( SystemGuid.DefinedValue.PERSON_RECORD_STATUS_INACTIVE.AsGuid() ).Id;
-                    person.IsDeceased = true;
-                    numberOfRecordsToRemove--;
-                    rockContext.SaveChanges();
-                }
-            }
-        }
-
-        private void CleanupTestData()
-        {
-            using ( var rockContext = new RockContext() )
-            {
-                rockContext.Database.ExecuteSqlCommand( @"DELETE PersonSearchKey
-                        WHERE EXISTS(
-                        SELECT 1
-                        FROM Person
-                        INNER JOIN PersonAlias ON PersonAlias.PersonId = Person.Id
-                        WHERE Email LIKE '%-%-%-%-%@test.com' AND PersonAlias.Id = PersonAliasId
-                        )
-                        DELETE PersonAlias WHERE EXISTS(
-                        SELECT 1
-                        FROM Person
-                        WHERE Email LIKE '%-%-%-%-%@test.com' AND Id = PersonId
-                        )
-                        DELETE Person
-                        WHERE Email LIKE '%-%-%-%-%@test.com'" );
-
-                rockContext.Database.ExecuteSqlCommand( $@"UPDATE Person
-                        SET IsDeceased = 1
-	                        , RecordStatusReasonValueId = NULL
-	                        , RecordStatusValueId = {DefinedValueCache.Get( SystemGuid.DefinedValue.PERSON_RECORD_STATUS_ACTIVE.AsGuid() ).Id}
-	                        , ForeignKey = NULL
-                        WHERE ForeignKey = 'RockImpactTest'" );
+                    FirstName = Guid.NewGuid().ToString(),
+                    LastName = Guid.NewGuid().ToString(),
+                    Email = $"{Guid.NewGuid()}@test.com",
+                    RecordTypeValueId = recordTypePersonId
+                };
+                _people.Add( person );
+                numberOfRecordsToCreate--;
             }
         }
     }

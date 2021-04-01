@@ -18,12 +18,12 @@ using System;
 using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Rock.Lava;
-using Rock.Tests.Integration.Lava;
+using Rock.Tests.UnitTests.Lava;
 
-namespace Rock.Tests.Integration
+namespace Rock.Tests.UnitTests
 {
     [TestClass()]
-    public sealed class IntegrationTestInitializer
+    public sealed class UnitTestInitializer
     {
         /// <summary>
         /// This will run before any tests in this assembly are run.
@@ -45,7 +45,7 @@ namespace Rock.Tests.Integration
                 Debug.Print( $"WARNING: The LavaEngineType setting is not specified in the current test configuration. Default value is set to \"{engineType}\"." );
             }
 
-            LavaIntegrationTestHelper.Initialize( testRockLiquidEngine: false, testDotLiquidEngine: true, testFluidEngine: true );
+            LavaUnitTestHelper.Initialize( testRockLiquidEngine: false, testDotLiquidEngine: true, testFluidEngine: true );
         }
 
         /// <summary>

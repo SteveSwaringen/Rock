@@ -31,14 +31,17 @@ namespace Rock.Update
     public class RockInstanceImpactStatistics
     {
         private readonly IRockImpactService _rockImpactService;
+        private readonly RockContext _rockContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RockInstanceImpactStatistics"/> class.
         /// </summary>
         /// <param name="rockImpactService">The rock impact service.</param>
-        public RockInstanceImpactStatistics( IRockImpactService rockImpactService )
+        /// <param name="rockContext">The rock context.</param>
+        public RockInstanceImpactStatistics( IRockImpactService rockImpactService, RockContext rockContext )
         {
             _rockImpactService = rockImpactService;
+            _rockContext = rockContext;
         }
 
         /// <summary>
@@ -51,41 +54,37 @@ namespace Rock.Update
         public void SendImpactStatisticsToSpark( bool includeOrganizationData, string version, string ipAddress, string environmentData )
         {
             ImpactLocation organizationLocation = null;
-            var numberOfActiveRecords = 0;
             var publicUrl = string.Empty;
             var organizationName = string.Empty;
 
-            using ( var rockContext = new RockContext() )
+            var numberOfActiveRecords = new PersonService( _rockContext ).Queryable( includeDeceased: false, includeBusinesses: false ).Count();
+
+            if ( numberOfActiveRecords <= 100 || SystemSettings.GetValue( SystemKey.SystemSetting.SAMPLEDATA_DATE ).AsDateTime().HasValue )
             {
-                numberOfActiveRecords = new PersonService( rockContext ).Queryable( includeDeceased: false, includeBusinesses: false ).Count();
+                return;
+            }
 
-                if ( numberOfActiveRecords <= 100 || SystemSettings.GetValue( SystemKey.SystemSetting.SAMPLEDATA_DATE ).AsDateTime().HasValue )
+            if ( includeOrganizationData )
+            {
+                var globalAttributes = GlobalAttributesCache.Get();
+
+                // Fetch the organization address
+                var organizationAddressLocationGuid = globalAttributes.GetValue( "OrganizationAddress" ).AsGuid();
+                if ( !organizationAddressLocationGuid.Equals( Guid.Empty ) )
                 {
-                    return;
-                }
-
-                if ( includeOrganizationData )
-                {
-                    var globalAttributes = GlobalAttributesCache.Get();
-
-                    // Fetch the organization address
-                    var organizationAddressLocationGuid = globalAttributes.GetValue( "OrganizationAddress" ).AsGuid();
-                    if ( !organizationAddressLocationGuid.Equals( Guid.Empty ) )
+                    var location = new LocationService( _rockContext ).Get( organizationAddressLocationGuid );
+                    if ( location != null )
                     {
-                        var location = new LocationService( rockContext ).Get( organizationAddressLocationGuid );
-                        if ( location != null )
-                        {
-                            organizationLocation = new ImpactLocation( location );
-                        }
+                        organizationLocation = new ImpactLocation( location );
                     }
+                }
 
-                    organizationName = globalAttributes.GetValue( "OrganizationName" );
-                    publicUrl = globalAttributes.GetValue( "PublicApplicationRoot" );
-                }
-                else
-                {
-                    numberOfActiveRecords = 0;
-                }
+                organizationName = globalAttributes.GetValue( "OrganizationName" );
+                publicUrl = globalAttributes.GetValue( "PublicApplicationRoot" );
+            }
+            else
+            {
+                numberOfActiveRecords = 0;
             }
 
             ImpactStatistic impactStatistic = new ImpactStatistic()

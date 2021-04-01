@@ -25,6 +25,7 @@ using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
 
 using Rock;
+using Rock.Data;
 using Rock.Model;
 using Rock.Update;
 using Rock.Update.Enum;
@@ -433,9 +434,12 @@ namespace RockWeb.Blocks.Core
             {
                 var ipAddress = Request.ServerVariables["LOCAL_ADDR"];
                 var environmentData = RockUpdateHelper.GetEnvDataAsJson( Request, ResolveRockUrl( "~/" ) );
-                var instanceStatistics = new RockInstanceImpactStatistics( new RockImpactService() );
+                using ( var rockContext = new RockContext() )
+                {
+                    var instanceStatistics = new RockInstanceImpactStatistics( new RockImpactService(), rockContext );
 
-                instanceStatistics.SendImpactStatisticsToSpark( cbIncludeStats.Checked, version, ipAddress, environmentData );
+                    instanceStatistics.SendImpactStatisticsToSpark( cbIncludeStats.Checked, version, ipAddress, environmentData );
+                }
             }
             catch ( Exception ex )
             {

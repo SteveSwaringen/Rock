@@ -58,7 +58,9 @@ namespace Rock.Tests.Integration.RockUpdate
         }
 
         [TestMethod]
-        public void InstallVersion_ShouldCorrectlyCopyContentFiles()
+        [DataRow( "content/test.txt" )]
+        [DataRow( "content\\test.txt" )]
+        public void InstallVersion_ShouldCorrectlyCopyContentFiles(string targetPath)
         {
             var expectedBackupFileText = "Original Test File";
             var expectedInstalledText = "Installed Test File";
@@ -84,7 +86,7 @@ namespace Rock.Tests.Integration.RockUpdate
             {
                 using ( var testPackage = new ZipArchive( packageFileStream, ZipArchiveMode.Create ) )
                 {
-                    var testEntry = testPackage.CreateEntry( "content/test.txt" );
+                    var testEntry = testPackage.CreateEntry( targetPath );
                     using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
                     {
                         writer.Write( expectedInstalledText );
@@ -126,7 +128,9 @@ namespace Rock.Tests.Integration.RockUpdate
         }
 
         [TestMethod]
-        public void InstallVersion_ShouldCorrectlyHandlesTransformFiles()
+        [DataRow( "content/web.config.rock.xdt" )]
+        [DataRow( "content\\web.config.rock.xdt" )]
+        public void InstallVersion_ShouldCorrectlyHandlesTransformFiles(string targetPath)
         {
             var expectedBackupFileText = @"<?xml version=""1.0"" encoding=""utf-8""?>
                 <configuration>
@@ -189,7 +193,7 @@ namespace Rock.Tests.Integration.RockUpdate
             {
                 using ( var testPackage = new ZipArchive( packageFileStream, ZipArchiveMode.Create ) )
                 {
-                    var testEntry = testPackage.CreateEntry( "content/web.config.rock.xdt" );
+                    var testEntry = testPackage.CreateEntry( targetPath );
                     using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
                     {
                         writer.Write( @"<?xml version=""1.0""?>
@@ -249,7 +253,9 @@ namespace Rock.Tests.Integration.RockUpdate
         }
 
         [TestMethod]
-        public void InstallVersion_ShouldCorrectlyDeleteFilesBackSlash()
+        [DataRow( "install/deletefile.lst" )]
+        [DataRow( "install\\deletefile.lst" )]
+        public void InstallVersion_ShouldCorrectlyDeleteFiles(string targetPath)
         {
             var expectedBackupFileText = "Original Test File";
 
@@ -274,7 +280,7 @@ namespace Rock.Tests.Integration.RockUpdate
             {
                 using ( var testPackage = new ZipArchive( packageFileStream, ZipArchiveMode.Create ) )
                 {
-                    var testEntry = testPackage.CreateEntry( "install\\deletefile.lst" );
+                    var testEntry = testPackage.CreateEntry( targetPath );
                     using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
                     {
                         writer.Write( "test.txt" );
@@ -313,71 +319,11 @@ namespace Rock.Tests.Integration.RockUpdate
         }
 
         [TestMethod]
-        public void InstallVersion_ShouldCorrectlyDeleteFilesForwardSlash()
-        {
-            var expectedBackupFileText = "Original Test File";
-
-            var testPackagePath = $"{AppDomain.CurrentDomain.BaseDirectory}\\testPackage.rockpkg";
-            var targetVersion = "1.13.1";
-            var currentVersion = "1.13.0";
-
-            if ( File.Exists( testPackagePath ) )
-            {
-                File.Delete( testPackagePath );
-            }
-
-            var testBackupDirectory = $"{AppDomain.CurrentDomain.BaseDirectory}\\App_Data\\RockBackup\\{currentVersion}";
-            if ( Directory.Exists( testBackupDirectory ) )
-            {
-                Directory.Delete( testBackupDirectory, true );
-            }
-
-            File.WriteAllText( $"{AppDomain.CurrentDomain.BaseDirectory}\\test.txt", expectedBackupFileText );
-
-            using ( var packageFileStream = new FileStream( testPackagePath, FileMode.OpenOrCreate ) )
-            {
-                using ( var testPackage = new ZipArchive( packageFileStream, ZipArchiveMode.Create ) )
-                {
-                    var testEntry = testPackage.CreateEntry( "install/deletefile.lst" );
-                    using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
-                    {
-                        writer.Write( "test.txt" );
-                    }
-                }
-            }
-
-            var releaseList = new List<RockRelease>
-            {
-                new RockRelease
-                {
-                    PackageUri = $"file://{testPackagePath}",
-                    SemanticVersion = targetVersion
-                }
-            };
-
-            var rockUpdateService = new Mock<IRockUpdateService>();
-
-            rockUpdateService.Setup( rus => rus.GetReleasesList( It.IsAny<Version>() ) ).Returns( releaseList );
-
-            var rockInstaller = new RockInstaller( rockUpdateService.Object, new Version( targetVersion ), new Version( currentVersion ) );
-            var package = rockInstaller.InstallVersion();
-
-            rockUpdateService.Verify( x => x.GetReleasesList( It.IsAny<Version>() ), Times.Once );
-
-            // Validate backup file was created.
-            var expectedBackupFilePath = $"{testBackupDirectory}\\test.txt";
-            Assert.IsTrue( File.Exists( expectedBackupFilePath ) );
-
-            var actualBackupFileText = File.ReadAllText( expectedBackupFilePath );
-            Assert.AreEqual( expectedBackupFileText, actualBackupFileText );
-
-            // Validate new file was copied in.
-            var expectedInstalledFilePath = $"{AppDomain.CurrentDomain.BaseDirectory}\\test.txt";
-            Assert.IsFalse( File.Exists( expectedInstalledFilePath ) );
-        }
-
-        [TestMethod]
-        public void InstallVersion_ShouldCorrectlyDeleteFilesEvenIfTheyWereModified()
+        [DataRow( "content/test.txt", "install/deletefile.lst" )]
+        [DataRow( "content\\test.txt", "install\\deletefile.lst" )]
+        [DataRow( "content/test.txt", "install\\deletefile.lst" )]
+        [DataRow( "content\\test.txt", "install/deletefile.lst" )]
+        public void InstallVersion_ShouldCorrectlyDeleteFilesEvenIfTheyWereModified(string testFileTarget, string deleteFileTarget)
         {
             var expectedBackupFileText = "Original Test File";
             var expectedInstalledText = "Installed Test File";
@@ -402,13 +348,13 @@ namespace Rock.Tests.Integration.RockUpdate
             {
                 using ( var testPackage = new ZipArchive( packageFileStream, ZipArchiveMode.Create ) )
                 {
-                    var testEntry = testPackage.CreateEntry( "content/test.txt" );
+                    var testEntry = testPackage.CreateEntry( testFileTarget );
                     using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
                     {
                         writer.Write( expectedInstalledText );
                     }
 
-                    testEntry = testPackage.CreateEntry( "install\\deletefile.lst" );
+                    testEntry = testPackage.CreateEntry( deleteFileTarget );
                     using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
                     {
                         writer.Write( "test.txt" );
@@ -447,7 +393,9 @@ namespace Rock.Tests.Integration.RockUpdate
         }
 
         [TestMethod]
-        public void InstallVersion_ShouldCorrectlyDeleteDirectories()
+        [DataRow( "install\\deletefile.lst" )]
+        [DataRow( "install/deletefile.lst" )]
+        public void InstallVersion_ShouldCorrectlyDeleteDirectories(string targetPath)
         {
             var expectedBackupFileText = "Original Test File";
 
@@ -473,7 +421,7 @@ namespace Rock.Tests.Integration.RockUpdate
             {
                 using ( var testPackage = new ZipArchive( packageFileStream, ZipArchiveMode.Create ) )
                 {
-                    var testEntry = testPackage.CreateEntry( "install\\deletefile.lst" );
+                    var testEntry = testPackage.CreateEntry( targetPath );
                     using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
                     {
                         writer.Write( "test" );
@@ -512,7 +460,11 @@ namespace Rock.Tests.Integration.RockUpdate
         }
 
         [TestMethod]
-        public void InstallVersion_ShouldCorrectlyDeleteDirectoriesEvenIfTheyWereModified()
+        [DataRow( "content/test/test.txt", "install/deletefile.lst" )]
+        //[DataRow( "content\\test\\test.txt", "install\\deletefile.lst" )]
+        //[DataRow( "content/test/test.txt", "install\\deletefile.lst" )]
+        //[DataRow( "content\\test\\test.txt", "install/deletefile.lst" )]
+        public void InstallVersion_ShouldCorrectlyDeleteDirectoriesEvenIfTheyWereModified(string fileTarget, string deleteTarget)
         {
             var expectedBackupFileText = "Original Test File";
             var expectedInstalledText = "Installed Test File";
@@ -538,13 +490,13 @@ namespace Rock.Tests.Integration.RockUpdate
             {
                 using ( var testPackage = new ZipArchive( packageFileStream, ZipArchiveMode.Create ) )
                 {
-                    var testEntry = testPackage.CreateEntry( "content/test/test.txt" );
+                    var testEntry = testPackage.CreateEntry( fileTarget );
                     using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
                     {
                         writer.Write( expectedInstalledText );
                     }
 
-                    testEntry = testPackage.CreateEntry( "install\\deletefile.lst" );
+                    testEntry = testPackage.CreateEntry( deleteTarget );
                     using ( StreamWriter writer = new StreamWriter( testEntry.Open() ) )
                     {
                         writer.Write( "test" );

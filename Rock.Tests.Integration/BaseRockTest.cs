@@ -14,9 +14,13 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Rock.Bus;
+using Rock.Lava;
+using Rock.Tests.Integration.Lava;
 
 namespace Rock.Tests.Integration
 {
@@ -36,6 +40,21 @@ namespace Rock.Tests.Integration
             */
             await RockMessageBus.StartAsync();
             RockMessageBus.IsRockStarted = true;
+
+            LavaEngineTypeSpecifier engineType;
+
+            var engineTypeName = context.Properties["LavaEngineType"].ToStringSafe();
+
+            var isValid = Enum.TryParse( engineTypeName, out engineType );
+
+            if ( !isValid )
+            {
+                engineType = LavaEngineTypeSpecifier.DotLiquid;
+
+                Debug.Print( $"WARNING: The LavaEngineType setting is not specified in the current test configuration. Default value is set to \"{engineType}\"." );
+            }
+
+            LavaIntegrationTestHelper.Initialize( testRockLiquidEngine: false, testDotLiquidEngine: true, testFluidEngine: true );
         }
 
         /// <summary>

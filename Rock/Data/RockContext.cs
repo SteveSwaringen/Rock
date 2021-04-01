@@ -1283,7 +1283,7 @@ namespace Rock.Data
         /// <value>
         /// the Location.
         /// </value>
-        public DbSet<Location> Locations { get; set; }
+        public virtual DbSet<Location> Locations { get; set; }
 
         /// <summary>
         /// Gets or sets the media accounts.
@@ -1483,7 +1483,7 @@ namespace Rock.Data
         /// <value>
         /// the People.
         /// </value>
-        public DbSet<Person> People { get; set; }
+        public virtual DbSet<Person> People { get; set; }
 
         /// <summary>
         /// Gets or sets the personal devices.
