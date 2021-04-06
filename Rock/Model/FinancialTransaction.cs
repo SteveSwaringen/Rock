@@ -344,6 +344,16 @@ namespace Rock.Model
                         SettledDate.Value.ToString( "yyyyMMdd" ).AsInteger();
             private set { }
         }
+
+        /// <summary>
+        /// Gets or sets the foreign currency code value identifier.
+        /// </summary>
+        /// <value>
+        /// The foreign currency code value identifier.
+        /// </value>
+        [DataMember]
+        [DefinedValue( SystemGuid.DefinedType.FINANCIAL_CURRENCY_CODE )]
+        public int? ForeignCurrencyCodeValueId { get; set; }
         #endregion Entity Properties
 
         #region Virtual Properties
