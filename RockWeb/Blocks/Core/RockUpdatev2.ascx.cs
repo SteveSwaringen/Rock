@@ -272,7 +272,10 @@ namespace RockWeb.Blocks.Core
         protected void rptPackageVersions_ItemCommand( object source, RepeaterCommandEventArgs e )
         {
             string version = e.CommandArgument.ToString();
-            Update( version );
+
+            hdnInstallVersion.Value = version;
+            litConfirmationMessage.Text = $"Are you sure you want to upgrade to Rock {RockVersion( new Version( version ) )}?";
+            mdConfirmInstall.Show();
         }
 
         #endregion
@@ -454,5 +457,11 @@ namespace RockWeb.Blocks.Core
         }
 
         #endregion
+
+        protected void mdConfirmInstall_SaveClick( object sender, EventArgs e )
+        {
+            mdConfirmInstall.Hide();
+            Update( hdnInstallVersion.Value );
+        }
     }
 }
