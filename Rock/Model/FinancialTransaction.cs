@@ -1018,6 +1018,48 @@ namespace Rock.Model
                 }
             }
         }
+
+        /// <summary>
+        /// Distributes the Organization's currency total amount among the details of a transaction according to each detail's
+        /// percent of the total transaction amount.
+        /// For example, consider a $10 transaction has two details, one for $1 and another for $9.
+        /// If this method were called with a $11 amount, the detail's amount would be set to $9.9 and $1.1 respectively,
+        /// and the details foreign currency amount will be set to the detail's original amount in this case $9 and $1.
+        /// </summary>
+        /// <param name="transaction"></param>
+        /// <param name="totalOrganizationCurrencyAmount">The total amount for the transaction in the organization's currency</param>
+        public static void SetApportionedDetailAmounts( this FinancialTransaction transaction, decimal totalOrganizationCurrencyAmount )
+        {
+            if ( transaction.TransactionDetails == null || !transaction.TransactionDetails.Any() )
+            {
+                return;
+            }
+
+            var totalAmount = transaction.TotalAmount;
+            var totalOrganizationCurrencyAmountRemaining = totalOrganizationCurrencyAmount;
+            var numberOfDetailsRemaining = transaction.TransactionDetails.Count;
+
+            foreach ( var detail in transaction.TransactionDetails )
+            {
+                numberOfDetailsRemaining--;
+                var isLastDetail = numberOfDetailsRemaining == 0;
+
+                if ( isLastDetail )
+                {
+                    // Ensure that the full amount is retained and some part of it
+                    // is not lost because of rounding
+                    detail.Amount = totalOrganizationCurrencyAmountRemaining;
+                }
+                else
+                {
+                    var percentOfTotal = detail.Amount / totalAmount;
+                    var organizationCurrencyAmount = Math.Round( percentOfTotal * totalOrganizationCurrencyAmount, 2 );
+
+                    detail.Amount = organizationCurrencyAmount;
+                    totalOrganizationCurrencyAmountRemaining -= organizationCurrencyAmount;
+                }
+            }
+        }
     }
 
     #endregion
