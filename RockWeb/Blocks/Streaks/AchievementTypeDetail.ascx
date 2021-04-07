@@ -154,6 +154,14 @@
                             <div class="col-sm-12">
                                 <Rock:CodeEditor ID="ceResultsLava" runat="server" EditorHeight="200" EditorMode="Lava" EditorTheme="Rock" Label="Results Lava Template" Help="The template to use when displaying the results of this achievement." />
                             </div>
+                            <div class="col-sm-6">
+                                <Rock:ImageUploader ID="imgupImageBinaryFile" runat="server" IsBinaryFile="true" Label="Image" Help="The image that will be used in the summary. For example, a trophy icon." />
+                            </div>
+                            <div class="col-sm-6">
+                            </div>
+                            <div class="col-sm-12">
+                                <Rock:CodeEditor ID="ceCustomSummaryLavaTemplate" runat="server" EditorHeight="200" EditorMode="Lava" EditorTheme="Rock" Label="Custom Summary Lava Template" Help="The lava template used to render the status summary of the achievement." />
+                            </div>
                         </div>
                     </Rock:PanelWidget>
 

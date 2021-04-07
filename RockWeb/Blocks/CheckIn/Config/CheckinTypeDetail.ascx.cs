@@ -227,6 +227,8 @@ namespace RockWeb.Blocks.CheckIn.Config
                 groupType.SetAttributeValue( "core_checkin_DisplayLocationCount", cbDisplayLocCount.Checked.ToString() );
                 groupType.SetAttributeValue( "core_checkin_EnableManagerOption", cbEnableManager.Checked.ToString() );
                 groupType.SetAttributeValue( "core_checkin_EnableOverride", cbEnableOverride.Checked.ToString() );
+                groupType.SetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES, listboxAchievementTypes.SelectedValues.AsDelimited(",") );
+
                 groupType.SetAttributeValue( "core_checkin_MaximumPhoneSearchLength", nbMaxPhoneLength.Text );
                 groupType.SetAttributeValue( "core_checkin_MaxSearchResults", nbMaxResults.Text );
                 groupType.SetAttributeValue( "core_checkin_MinimumPhoneSearchLength", nbMinPhoneLength.Text );
@@ -483,6 +485,7 @@ namespace RockWeb.Blocks.CheckIn.Config
                 cbDisplayLocCount.Checked = groupType.GetAttributeValue( "core_checkin_DisplayLocationCount" ).AsBoolean( true );
                 cbEnableManager.Checked = groupType.GetAttributeValue( "core_checkin_EnableManagerOption" ).AsBoolean( true );
                 cbEnableOverride.Checked = groupType.GetAttributeValue( "core_checkin_EnableOverride" ).AsBoolean( true );
+                listboxAchievementTypes.SetValues( groupType.GetAttributeValue( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES ).SplitDelimitedValues() );
                 nbMaxPhoneLength.Text = groupType.GetAttributeValue( "core_checkin_MaximumPhoneSearchLength" );
                 nbMaxResults.Text = groupType.GetAttributeValue( "core_checkin_MaxSearchResults" );
                 nbMinPhoneLength.Text = groupType.GetAttributeValue( "core_checkin_MinimumPhoneSearchLength" );
@@ -571,6 +574,7 @@ namespace RockWeb.Blocks.CheckIn.Config
             excludeList.Add( "core_checkin_DisplayLocationCount" );
             excludeList.Add( "core_checkin_EnableManagerOption" );
             excludeList.Add( "core_checkin_EnableOverride" );
+            excludeList.Add( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES );
             excludeList.Add( "core_checkin_MaximumPhoneSearchLength" );
             excludeList.Add( "core_checkin_MaxSearchResults" );
             excludeList.Add( "core_checkin_MinimumPhoneSearchLength" );
@@ -744,6 +748,19 @@ namespace RockWeb.Blocks.CheckIn.Config
                         ddlSearchType.Items.Add( new System.Web.UI.WebControls.ListItem( searchType.Value, searchType.Id.ToString() ) );
                     }
                 }
+            }
+
+            var achievementTypes = AchievementTypeCache.All()
+                .Where( stat => stat.IsActive )
+                .OrderBy( stat => stat.Name )
+                .ToList();
+
+            listboxAchievementTypes.Items.Clear();
+
+            foreach ( var achievementType in achievementTypes )
+            {
+                var li = new ListItem( achievementType.Name, achievementType.Guid.ToString() );
+                listboxAchievementTypes.Items.Add( li );
             }
 
             lbKnownRelationshipTypes.Items.Clear();

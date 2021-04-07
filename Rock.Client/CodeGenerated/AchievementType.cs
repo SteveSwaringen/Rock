@@ -71,6 +71,9 @@ namespace Rock.Client
         public int ComponentEntityTypeId { get; set; }
 
         /// <summary />
+        public string CustomSummaryLavaTemplate { get; set; }
+
+        /// <summary />
         public string Description { get; set; }
 
         /// <summary />
@@ -78,6 +81,9 @@ namespace Rock.Client
 
         /// <summary />
         public string ForeignKey { get; set; }
+
+        /// <summary />
+        public int? ImageBinaryFileId { get; set; }
 
         /// <summary />
         public bool IsActive { get; set; }
@@ -144,9 +150,11 @@ namespace Rock.Client
             this.CategoryId = source.CategoryId;
             this.ComponentConfigJson = source.ComponentConfigJson;
             this.ComponentEntityTypeId = source.ComponentEntityTypeId;
+            this.CustomSummaryLavaTemplate = source.CustomSummaryLavaTemplate;
             this.Description = source.Description;
             this.ForeignGuid = source.ForeignGuid;
             this.ForeignKey = source.ForeignKey;
+            this.ImageBinaryFileId = source.ImageBinaryFileId;
             this.IsActive = source.IsActive;
             this.MaxAccomplishmentsAllowed = source.MaxAccomplishmentsAllowed;
             this.ModifiedAuditValuesAlreadyUpdated = source.ModifiedAuditValuesAlreadyUpdated;

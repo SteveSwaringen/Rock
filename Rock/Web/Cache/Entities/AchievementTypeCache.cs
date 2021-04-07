@@ -124,32 +124,25 @@ namespace Rock.Web.Cache
         [DataMember]
         public string AchievementIconCssClass { get; private set; }
 
-        /// <summary>
-        /// Gets or sets the maximum accomplishments allowed.
-        /// </summary>
-        /// <value>
-        /// The maximum accomplishments allowed.
-        /// </value>
+        /// <inheritdoc cref="Rock.Model.AchievementType.MaxAccomplishmentsAllowed"/>
         [DataMember]
         public int? MaxAccomplishmentsAllowed { get; private set; }
 
-        /// <summary>
-        /// Gets or sets whether over achievement is allowed. This cannot be true if <see cref="MaxAccomplishmentsAllowed"/> is greater than 1.
-        /// </summary>
-        /// <value>
-        /// The allow over achievement.
-        /// </value>
+        /// <inheritdoc cref="Rock.Model.AchievementType.AllowOverAchievement"/>
         [DataMember]
         public bool AllowOverAchievement { get; private set; }
 
-        /// <summary>
-        /// Gets or sets the category identifier.
-        /// </summary>
-        /// <value>
-        /// The category identifier.
-        /// </value>
+        /// <inheritdoc cref="Rock.Model.AchievementType.CategoryId"/>
         [DataMember]
         public int? CategoryId { get; private set; }
+
+        /// <inheritdoc cref="Rock.Model.AchievementType.ImageBinaryFileId"/>
+        [DataMember]
+        public int? ImageBinaryFileId { get; private set; }
+
+        /// <inheritdoc cref="Rock.Model.AchievementType.CustomSummaryLavaTemplate"/>
+        [DataMember]
+        public string CustomSummaryLavaTemplate { get; private set; }
 
         #endregion Entity Properties
 
@@ -300,6 +293,8 @@ namespace Rock.Web.Cache
             MaxAccomplishmentsAllowed = achievementType.MaxAccomplishmentsAllowed;
             AllowOverAchievement = achievementType.AllowOverAchievement;
             CategoryId = achievementType.CategoryId;
+            ImageBinaryFileId = achievementType.ImageBinaryFileId;
+            CustomSummaryLavaTemplate = achievementType.CustomSummaryLavaTemplate;
         }
 
         /// <summary>

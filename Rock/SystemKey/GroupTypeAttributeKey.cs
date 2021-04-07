@@ -122,6 +122,12 @@ namespace Rock.SystemKey
         /// </summary>
         public const string CHECKIN_GROUPTYPE_ENABLE_PRESENCE = "core_checkin_EnablePresence";
 
+        /// <summary>
+        ///  Attribute Key for Checkin Types for the list of Achievement Types to use for Checkin Celebrations
+        ///  Stored as a list of <see cref="Rock.Model.AchievementType"/> Guids
+        /// </summary>
+        public const string CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES = "core_checkin_AchievementTypes";
+
         #endregion
 
         #region Display

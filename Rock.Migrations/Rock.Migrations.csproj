@@ -61,6 +61,14 @@
     <Compile Include="..\Rock.Version\AssemblySharedInfo.cs">
       <Link>AssemblySharedInfo.cs</Link>
     </Compile>
+    <Compile Include="Migrations\202104071902262_CheckinCelebrations.cs" />
+    <Compile Include="Migrations\202104071902262_CheckinCelebrations.Designer.cs">
+      <DependentUpon>202104071902262_CheckinCelebrations.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202104072258069_CheckinCelebrations2.cs" />
+    <Compile Include="Migrations\202104072258069_CheckinCelebrations2.Designer.cs">
+      <DependentUpon>202104072258069_CheckinCelebrations2.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Version 12.0\Version 1.12.3\202104012255129_AddMediaRelatedTable2.cs" />
     <Compile Include="Migrations\Version 12.0\Version 1.12.3\202104012255129_AddMediaRelatedTable2.Designer.cs">
       <DependentUpon>202104012255129_AddMediaRelatedTable2.cs</DependentUpon>
@@ -407,6 +415,12 @@
     <Compile Include="SqlServerTypes\Loader.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Migrations\202104071902262_CheckinCelebrations.resx">
+      <DependentUpon>202104071902262_CheckinCelebrations.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202104072258069_CheckinCelebrations2.resx">
+      <DependentUpon>202104072258069_CheckinCelebrations2.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 12.0\Version 1.12.3\202104012255129_AddMediaRelatedTable2.resx">
       <DependentUpon>202104012255129_AddMediaRelatedTable2.cs</DependentUpon>
     </EmbeddedResource>
@@ -726,7 +740,7 @@
       <Project>{00EDCB8D-EF33-459C-AD62-02876BD24DFF}</Project>
       <Name>DotLiquid</Name>
     </ProjectReference>
-	<ProjectReference Include="..\Rock.Lava.Shared\Rock.Lava.Shared.csproj">
+    <ProjectReference Include="..\Rock.Lava.Shared\Rock.Lava.Shared.csproj">
       <Project>{8820cd93-70ee-496d-b17b-0c4c68dd4957}</Project>
       <Name>Rock.Lava.Shared</Name>
     </ProjectReference>

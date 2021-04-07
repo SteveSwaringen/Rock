@@ -68,6 +68,14 @@ namespace Rock.CheckIn
         public bool EnableOverride => GetSetting( "core_checkin_EnableOverride" ).AsBoolean( true );
 
         /// <summary>
+        /// Gets the <see cref="Rock.Model.AchievementType" />> guids  that are enabled for Checkin Celebrations.
+        /// </summary>
+        /// <value>
+        /// The achievement types.
+        /// </value>
+        public Guid[] AchievementTypes => GetSetting( Rock.SystemKey.GroupTypeAttributeKey.CHECKIN_GROUPTYPE_ACHIEVEMENT_TYPES ).SplitDelimitedValues().AsGuidList().ToArray();
+
+        /// <summary>
         /// Gets the length of the security code alpha numeric.
         /// </summary>
         /// <value>
