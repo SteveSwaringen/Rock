@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Rock.Model;
@@ -11,12 +10,12 @@ namespace Rock.Tests.UnitTests.Rock.Model
     public class FinancialTransactionExtensionMethodTests
     {
         [TestMethod]
-        [DataRow(1.188)]
+        [DataRow( 1.188 )]
         [DataRow( 1 )]
         [DataRow( .849 )]
         [DataRow( .0125 )]
         [DataRow( 100.2564 )]
-        public void SetApportionedForeignAmountsOnDetails_CalculatesTotalsCorrectly(double exchangeRate)
+        public void SetApportionedForeignAmountsOnDetails_CalculatesTotalsCorrectly( double exchangeRate )
         {
             var financialTransaction = new FinancialTransaction();
             financialTransaction.TransactionDetails.Add( new FinancialTransactionDetail
@@ -34,7 +33,7 @@ namespace Rock.Tests.UnitTests.Rock.Model
 
             var decimalExchangeRate = Convert.ToDecimal( exchangeRate );
             var organizationCurrencyTotal = financialTransaction.TotalAmount * decimalExchangeRate;
-            
+
             var expectedfinancialTransaction = new FinancialTransaction();
             var itemCount = financialTransaction.TransactionDetails.Count;
             var remainingTotal = organizationCurrencyTotal;
@@ -42,7 +41,7 @@ namespace Rock.Tests.UnitTests.Rock.Model
             foreach ( var detail in financialTransaction.TransactionDetails )
             {
                 itemCount -= 1;
-                
+
                 var isLastItem = itemCount == 0;
                 if ( isLastItem )
                 {
@@ -54,7 +53,7 @@ namespace Rock.Tests.UnitTests.Rock.Model
                 }
                 else
                 {
-                    var organizationCurrencyAmount = Math.Round(detail.Amount * decimalExchangeRate, 2);
+                    var organizationCurrencyAmount = Math.Round( detail.Amount * decimalExchangeRate, 2 );
                     remainingTotal -= organizationCurrencyAmount;
 
                     expectedfinancialTransaction.TransactionDetails.Add( new FinancialTransactionDetail
@@ -72,7 +71,7 @@ namespace Rock.Tests.UnitTests.Rock.Model
             var expectedTransactionDetails = expectedfinancialTransaction.TransactionDetails.Cast<FinancialTransactionDetail>().ToList();
             var actualTransactionDetails = financialTransaction.TransactionDetails.Cast<FinancialTransactionDetail>().ToList();
 
-            for(var i = 0; i < expectedTransactionDetails.Count; i++ )
+            for ( var i = 0; i < expectedTransactionDetails.Count; i++ )
             {
                 Assert.That.AreEqual( expectedTransactionDetails[i].Amount, actualTransactionDetails[i].Amount );
             }
