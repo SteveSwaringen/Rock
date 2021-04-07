@@ -289,6 +289,8 @@ namespace Rock.Model
                 }
             }
 
+            reference.AmountCurrencyCodeValueId = this.PreferredForeignCurrencyCodeValueId;
+
             return reference;
         }
 
