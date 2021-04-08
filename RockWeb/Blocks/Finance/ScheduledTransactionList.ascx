@@ -26,6 +26,7 @@
                                 <Rock:RockBoundField DataField="AuthorizedPersonAlias.Person.FullNameReversed" HeaderText="Contributor"
                                     SortExpression="AuthorizedPersonAlias.Person.LastName,AuthorizedPersonAlias.Person.NickName" />
                                 <Rock:CurrencyField DataField="TotalAmount" HeaderText="Amount" ItemStyle-HorizontalAlign="Right" HeaderStyle-HorizontalAlign="Right" SortExpression="Amount" />
+                                <Rock:RockLiteralField ID="lForeignCurrencySymbol" HeaderText="Foreign Currency" />
                                 <Rock:RockTemplateField HeaderText="Accounts">
                                     <ItemTemplate><%# GetAccounts( Container.DataItem ) %></ItemTemplate>
                                 </Rock:RockTemplateField>
