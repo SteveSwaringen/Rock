@@ -69,6 +69,10 @@
     <Compile Include="Migrations\202104072258069_CheckinCelebrations2.Designer.cs">
       <DependentUpon>202104072258069_CheckinCelebrations2.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202104092006033_CheckinCelebrations3.cs" />
+    <Compile Include="Migrations\202104092006033_CheckinCelebrations3.Designer.cs">
+      <DependentUpon>202104092006033_CheckinCelebrations3.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Version 12.0\Version 1.12.3\202104012255129_AddMediaRelatedTable2.cs" />
     <Compile Include="Migrations\Version 12.0\Version 1.12.3\202104012255129_AddMediaRelatedTable2.Designer.cs">
       <DependentUpon>202104012255129_AddMediaRelatedTable2.cs</DependentUpon>
@@ -420,6 +424,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202104072258069_CheckinCelebrations2.resx">
       <DependentUpon>202104072258069_CheckinCelebrations2.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202104092006033_CheckinCelebrations3.resx">
+      <DependentUpon>202104092006033_CheckinCelebrations3.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 12.0\Version 1.12.3\202104012255129_AddMediaRelatedTable2.resx">
       <DependentUpon>202104012255129_AddMediaRelatedTable2.cs</DependentUpon>

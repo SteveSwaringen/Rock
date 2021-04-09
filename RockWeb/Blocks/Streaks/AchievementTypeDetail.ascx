@@ -70,8 +70,11 @@
                         <div class="col-md-6">
                             <Rock:DataTextBox ID="tbName" runat="server" SourceTypeName="Rock.Model.AchievementType, Rock" PropertyName="Name" />
                         </div>
-                        <div class="col-md-6">
-                            <Rock:RockCheckBox ID="cbActive" runat="server" SourceTypeName="Rock.Model.AchievementType, Rock" PropertyName="IsActive" Label="Active" Checked="true" Text="Yes" />
+                        <div class="col-md-3">
+                            <Rock:RockCheckBox ID="cbActive" runat="server" Label="Active" Checked="true" Text="Yes" />
+                        </div>
+                        <div class="col-md-3">
+                            <Rock:RockCheckBox ID="cbIsPublic" runat="server" Label="Public" Checked="true" Text="Yes" />
                         </div>
                     </div>
 

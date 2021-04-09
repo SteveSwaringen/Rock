@@ -157,6 +157,15 @@ namespace Rock.Model
         public int? CategoryId { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether this instance is public.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is public; otherwise, <c>false</c>.
+        /// </value>
+        [DataMember]
+        public bool IsPublic { get; set; }
+
+        /// <summary>
         /// Gets or sets the image binary file identifier. This would be the image
         /// that would be shown in the achievement summary (for example, a trophy).
         /// </summary>

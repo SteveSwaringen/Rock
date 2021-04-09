@@ -555,6 +555,7 @@ namespace RockWeb.Blocks.Streaks
             achievementType.Name = tbName.Text;
             achievementType.Description = tbDescription.Text;
             achievementType.IsActive = cbActive.Checked;
+            achievementType.IsPublic = cbIsPublic.Checked;
             achievementType.AchievementIconCssClass = tbIconCssClass.Text;
             achievementType.MaxAccomplishmentsAllowed = cbAllowOverachievement.Checked ? 1 : nbMaxAccomplishments.IntegerValue;
             achievementType.AllowOverAchievement = cbAllowOverachievement.Checked;
@@ -763,6 +764,7 @@ namespace RockWeb.Blocks.Streaks
             tbDescription.Text = achievementType.Description;
             spstStepType.StepTypeId = achievementType.AchievementStepTypeId;
             cbActive.Checked = achievementType.IsActive;
+            cbIsPublic.Checked = achievementType.IsPublic;
             cbAllowOverachievement.Checked = achievementType.AllowOverAchievement;
             nbMaxAccomplishments.IntegerValue = achievementType.MaxAccomplishmentsAllowed;
             cpAchievementComponent.SetValue( achievementType.AchievementEntityType.Guid.ToString().ToUpper() );
@@ -807,6 +809,7 @@ namespace RockWeb.Blocks.Streaks
 
             nbMaxAccomplishments.IntegerValue = 1;
             cbActive.Checked = true;
+            cbIsPublic.Checked = true;
 
             SyncStepControls();
             SyncOverAchievementAndMaxControls();
