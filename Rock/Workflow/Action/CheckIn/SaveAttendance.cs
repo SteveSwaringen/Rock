@@ -195,7 +195,7 @@ namespace Rock.Workflow.Action.CheckIn
                                         {
                                             attendance = attendanceService.AddOrUpdate( primaryAlias.Id, startDateTime.Date, group.Group.Id,
                                                 location.Location.Id, schedule.Schedule.Id, location.CampusId,
-                                                checkInState.Kiosk.Device.Id, checkInState.CheckIn.SearchType.Id,
+                                                checkInState.Kiosk.Device.Id, checkInState.CheckIn.SearchType?.Id,
                                                 checkInState.CheckIn.SearchValue, family.Group.Id, attendanceCode.Id );
 
                                             attendance.PersonAlias = primaryAlias;
@@ -205,7 +205,7 @@ namespace Rock.Workflow.Action.CheckIn
                                     attendance.AttendanceCheckInSession = attendanceCheckInSession;
 
                                     attendance.DeviceId = checkInState.Kiosk.Device.Id;
-                                    attendance.SearchTypeValueId = checkInState.CheckIn.SearchType.Id;
+                                    attendance.SearchTypeValueId = checkInState.CheckIn.SearchType?.Id;
                                     attendance.SearchValue = checkInState.CheckIn.SearchValue;
                                     attendance.CheckedInByPersonAliasId = checkInState.CheckIn.CheckedInByPersonAliasId;
                                     attendance.SearchResultGroupId = family.Group.Id;
@@ -250,7 +250,19 @@ namespace Rock.Workflow.Action.CheckIn
                 }
             }
 
-            rockContext.SaveChanges();
+            if ( checkInState.CheckInType.AchievementTypes.Any() )
+            {
+                foreach ( var attendanceRecord in attendanceRecords )
+                {
+                    StreakTypeService.HandleAttendanceRecord( attendanceRecord );
+                }
+
+                SaveChangesResult saveChangesResult = rockContext.SaveChanges( new SaveChangesArgs { IsAchievementsEnabled = true } );
+            }
+            else
+            {
+                rockContext.SaveChanges();
+            }
 
             // Now that the records are persisted, take the Ids and save them to the temp CheckInFamliy object
             family.AttendanceIds = attendanceRecords.Select( a => a.Id ).ToList();
