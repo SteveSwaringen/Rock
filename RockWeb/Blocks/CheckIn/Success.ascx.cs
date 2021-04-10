@@ -33,6 +33,7 @@ using Rock.Data;
 using Rock.Lava;
 using Rock.Model;
 using Rock.Utility;
+using Rock.Web.Cache;
 using Rock.Web.UI;
 
 namespace RockWeb.Blocks.CheckIn
@@ -288,6 +289,8 @@ namespace RockWeb.Blocks.CheckIn
                             lCheckinQRCodeHtml.Text = string.Format( "<div class='qr-code-container text-center'><img class='img-responsive qr-code' src='{0}' alt='Check-in QR Code' width='500' height='500'></div>", GetAttendanceSessionsQrCodeImageUrl( attendanceSessionGuidsCookie ) );
                         }
 
+                        RenderAchievements( checkinResultList );
+
                     }
                     catch ( Exception ex )
                     {
@@ -295,6 +298,87 @@ namespace RockWeb.Blocks.CheckIn
                     }
                 }
             }
+        }
+
+        private void RenderAchievements( List<CheckinResult> checkinResultList )
+        {
+            var checkInState = CurrentCheckInState;
+            pnlAchievements.Visible = false;
+            pnlAchievementSuccess.Visible = false;
+            pnlAchievementProgress.Visible = false;
+            if ( !checkInState.CheckInType.AchievementTypes.Any() )
+            {
+
+                return;
+            }
+
+            var configuredAchievementTypes = checkInState.CheckInType.AchievementTypes.Select( a => AchievementTypeCache.Get( a ) ).Where( a => a != null ).ToList();
+
+            var updatedAchievements = checkInState.CheckIn.UpdatedAchievementAttempts.Where( a => configuredAchievementTypes.Any( x => x.Id == a.AchievementTypeId ) );
+            var successfulAchievements = updatedAchievements.Where( a => a.IsSuccessful ).ToList();
+            var checkedInPersonList = checkinResultList.Select( a => a.Person?.Person ).Where( a => a != null ).ToList();
+
+            var personIds = checkedInPersonList.Select( a => a.Id ).ToArray();
+
+            var rockContext = new RockContext();
+
+            var configuredAchievementTypeIds = configuredAchievementTypes.Select( a => a.Id ).ToList();
+            var updatedAchievementIds = updatedAchievements.Select( a => a.Id ).ToList();
+
+            var achievementAttemptService = new AchievementAttemptService( rockContext );
+
+            // TODO, how to exactly determine which ones to show as new, in progress, etc
+            Dictionary<Person, List<AchievementAttempt>> personInProgressAchievements = new Dictionary<Person, List<AchievementAttempt>>();
+
+            // ?? Dictionary<Person, List<AchievementAttempt>> personUpdatedAchievements = new Dictionary<Person, List<AchievementAttempt>>();
+
+            Dictionary<Person, List<AchievementAttempt>> personUpdatedSuccessAchievements = new Dictionary<Person, List<AchievementAttempt>>();
+            foreach ( var person in checkedInPersonList )
+            {
+                var achievementAttemptQueryForPerson = achievementAttemptService.QueryByPersonId( person.Id )
+                    .Where( a => configuredAchievementTypeIds.Contains( a.AchievementTypeId ) )
+                    .Where( a => a.IsClosed == false && a.IsSuccessful == false );
+
+                var achievementAttemptsForPerson = achievementAttemptQueryForPerson.ToList();
+                if ( achievementAttemptQueryForPerson.Any() )
+                {
+                    personInProgressAchievements.AddOrReplace( person, achievementAttemptQueryForPerson.AsNoTracking().ToList() );
+                }
+
+                var updatedAchievementByPerson = achievementAttemptService.QueryByPersonId( person.Id ).Where( a => updatedAchievementIds.Contains( a.Id ) ).ToList();
+
+                if ( updatedAchievementByPerson.Any() )
+                {
+                    personUpdatedSuccessAchievements.AddOrReplace( person, updatedAchievementByPerson.Where( a => a.IsSuccessful ).ToList() );
+                }
+            }
+
+            if ( personUpdatedSuccessAchievements.Any() )
+            {
+                pnlAchievementSuccess.Visible = false;
+
+                // todo, flatten this out to person+attempt instead of person+attempts?
+                rptAchievementsSuccess.DataSource = personUpdatedSuccessAchievements;
+                rptAchievementsSuccess.DataBind();
+            }
+
+            if ( personInProgressAchievements.Any() )
+            {
+                pnlAchievementProgress.Visible = true;
+                // todo, flatten this out to person+attempt instead of person+attempts?
+                rptAchievementProgress.DataSource = personInProgressAchievements;
+            }
+
+        }
+
+        protected void rptAchievementsSuccess_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
+        {
+            // todo
+        }
+
+        protected void rptAchievementProgress_ItemDataBound( object sender, System.Web.UI.WebControls.RepeaterItemEventArgs e )
+        {
+            // todo
         }
 
         /// <summary>
@@ -416,5 +500,7 @@ namespace RockWeb.Blocks.CheckIn
             ScriptManager.RegisterStartupScript( this, this.GetType(), "addLabelScript", script, true );
         }
 
+
+       
     }
 }

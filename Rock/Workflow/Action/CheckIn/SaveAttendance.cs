@@ -258,6 +258,7 @@ namespace Rock.Workflow.Action.CheckIn
                 }
 
                 SaveChangesResult saveChangesResult = rockContext.SaveChanges( new SaveChangesArgs { IsAchievementsEnabled = true } );
+                checkInState.CheckIn.UpdatedAchievementAttempts = saveChangesResult.AchievementAttempts.ToArray();
             }
             else
             {

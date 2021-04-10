@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 
+using Rock.Model;
 using Rock.Web.Cache;
 
 namespace Rock.CheckIn
@@ -156,5 +157,12 @@ namespace Rock.CheckIn
             }
         }
 
+        /// <summary>
+        /// Achievement Attempt results that are a result of this checkin.
+        /// </summary>
+        /// <value>
+        /// The updated achievement attempts.
+        /// </value>
+        public AchievementAttempt[] UpdatedAchievementAttempts { get; internal set; }
     }
 }
