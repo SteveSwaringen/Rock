@@ -905,7 +905,14 @@ namespace RockWeb.Blocks.Connection
                         connectionRequestActivity.ConnectionActivityTypeId = transferredActivityId;
                         connectionRequestActivity.Note = tbTransferNote.Text;
                         connectionRequestActivityService.Add( connectionRequestActivity );
-                        connectionRequest.ConnectionOpportunityId = newOpportunityId.Value;
+
+                        if ( newOpportunityId.Value != connectionRequest.ConnectionOpportunityId )
+                        {
+                            connectionRequest.ConnectionOpportunityId = newOpportunityId.Value;
+                            connectionRequest.AssignedGroupId = null;
+                            connectionRequest.AssignedGroupMemberRoleId = null;
+                            connectionRequest.AssignedGroupMemberStatus = null;
+                        }
 
                         if ( newOpportunity.ShowStatusOnTransfer && ddlTransferStatus.Visible )
                         {
@@ -917,10 +924,6 @@ namespace RockWeb.Blocks.Connection
                         {
                             connectionRequest.CampusId = cpTransferCampus.SelectedCampusId;
                         }
-
-                        connectionRequest.AssignedGroupId = null;
-                        connectionRequest.AssignedGroupMemberRoleId = null;
-                        connectionRequest.AssignedGroupMemberStatus = null;
 
                         // assign the connector based on the selection
                         if ( rbTransferCurrentConnector.Checked )
