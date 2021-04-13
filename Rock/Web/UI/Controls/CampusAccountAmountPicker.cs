@@ -833,7 +833,7 @@ namespace Rock.Web.UI.Controls
             _nbAmountAccountSingle.ID = "_nbAmountAccountSingle";
             _nbAmountAccountSingle.Attributes["placeholder"] = "0";
             _nbAmountAccountSingle.Attributes["type"] = "number";
-            _nbAmountAccountSingle.CssClass = "amount-input form-control";
+            _nbAmountAccountSingle.CssClass = "amount-input form-control js-amount-input";
             _nbAmountAccountSingle.Attributes["min"] = "0";
             _nbAmountAccountSingle.Attributes["max"] = int.MaxValue.ToString();
 
@@ -842,6 +842,16 @@ namespace Rock.Web.UI.Controls
             _nbAmountAccountSingle.Attributes["maxlength"] = "14";
 
             _nbAmountAccountSingle.Attributes["step"] = "0.01";
+
+            /* 2020-11-20 MDP
+               inputmode tells the browser what type of input to expect. If we 
+               see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/inputmode
+
+               This fixes an issue where some browsers (especially mobile phones) would allow non-decimal characters to be allowed in the input box
+            */
+
+            _nbAmountAccountSingle.Attributes["inputmode"] = "decimal";
+
             _pnlAccountAmountEntrySingle.Controls.Add( _nbAmountAccountSingle );
 
             var pnlSingleCampusDiv = new Panel() { CssClass = "campus-dropdown " };
@@ -927,7 +937,7 @@ namespace Rock.Web.UI.Controls
                 var currencyBox = new CurrencyBox
                 {
                     ID = RepeaterControlIds.ID_nbAccountAmountMulti,
-                    CssClass = "amount-input account-amount-multi",
+                    CssClass = "amount-input account-amount-multi js-amount-input",
                     NumberType = ValidationDataType.Currency,
                     MaximumValue = int.MaxValue.ToString(),
                     MinimumValue = "0"

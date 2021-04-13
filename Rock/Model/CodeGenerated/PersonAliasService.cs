@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // </copyright>
-//
+
 using System;
 using System.Linq;
 
@@ -535,6 +535,18 @@ namespace Rock.Model
             if ( new Service<CommunicationResponse>( Context ).Queryable().Any( a => a.ToPersonAliasId == item.Id ) )
             {
                 errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, CommunicationResponse.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<CommunicationResponseAttachment>( Context ).Queryable().Any( a => a.CreatedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, CommunicationResponseAttachment.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<CommunicationResponseAttachment>( Context ).Queryable().Any( a => a.ModifiedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, CommunicationResponseAttachment.FriendlyTypeName );
                 return false;
             }  
  
@@ -1744,6 +1756,42 @@ namespace Rock.Model
                 return false;
             }  
  
+            if ( new Service<MediaAccount>( Context ).Queryable().Any( a => a.CreatedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, MediaAccount.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<MediaAccount>( Context ).Queryable().Any( a => a.ModifiedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, MediaAccount.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<MediaElement>( Context ).Queryable().Any( a => a.CreatedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, MediaElement.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<MediaElement>( Context ).Queryable().Any( a => a.ModifiedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, MediaElement.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<MediaFolder>( Context ).Queryable().Any( a => a.CreatedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, MediaFolder.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<MediaFolder>( Context ).Queryable().Any( a => a.ModifiedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, MediaFolder.FriendlyTypeName );
+                return false;
+            }  
+ 
             if ( new Service<MergeTemplate>( Context ).Queryable().Any( a => a.CreatedByPersonAliasId == item.Id ) )
             {
                 errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, MergeTemplate.FriendlyTypeName );
@@ -2215,6 +2263,18 @@ namespace Rock.Model
             if ( new Service<RegistrationRegistrantFee>( Context ).Queryable().Any( a => a.ModifiedByPersonAliasId == item.Id ) )
             {
                 errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, RegistrationRegistrantFee.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<RegistrationSession>( Context ).Queryable().Any( a => a.CreatedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, RegistrationSession.FriendlyTypeName );
+                return false;
+            }  
+ 
+            if ( new Service<RegistrationSession>( Context ).Queryable().Any( a => a.ModifiedByPersonAliasId == item.Id ) )
+            {
+                errorMessage = string.Format( "This {0} is assigned to a {1}.", PersonAlias.FriendlyTypeName, RegistrationSession.FriendlyTypeName );
                 return false;
             }  
  
@@ -2884,6 +2944,25 @@ namespace Rock.Model
                 target.CopyPropertiesFrom( source );
                 return target;
             }
+        }
+
+        /// <summary>
+        /// Clones this PersonAlias object to a new PersonAlias object with default values for the properties in the Entity and Model base classes.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <returns></returns>
+        public static PersonAlias CloneWithoutIdentity( this PersonAlias source )
+        {
+            var target = new PersonAlias();
+            target.CopyPropertiesFrom( source );
+
+            target.Id = 0;
+            target.Guid = Guid.NewGuid();
+            target.ForeignKey = null;
+            target.ForeignId = null;
+            target.ForeignGuid = null;
+
+            return target;
         }
 
         /// <summary>

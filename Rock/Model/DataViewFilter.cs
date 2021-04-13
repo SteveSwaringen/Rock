@@ -29,6 +29,7 @@ using Rock.Reporting;
 using Rock.Security;
 using Rock.Utility;
 using Rock.Web.Cache;
+using Rock.Lava;
 
 namespace Rock.Model
 {
@@ -117,7 +118,7 @@ namespace Rock.Model
         /// <value>
         /// The parent DataViewFilter.
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual DataViewFilter Parent { get; set; }
 
         /// <summary>
@@ -452,7 +453,7 @@ namespace Rock.Model
                             Filter expressions of these types (GroupAny/GroupAllFalse) are joined with an OR clause,
                             so they must either be defaulted to false or excluded from the where expression altogether
                             (otherwise they will return every Person record in the database, because a "True OrElse
-                            <anything>" predicate will always be true.
+                            <anything>" predicate will always be true).
 
                             Therefore, if this child filter is null, we can simply ignore it and move on to the next one.
 

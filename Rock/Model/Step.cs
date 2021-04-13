@@ -24,6 +24,7 @@ using System.Data.Entity.Infrastructure;
 
 using System.Runtime.Serialization;
 using Rock.Data;
+using Rock.Tasks;
 
 namespace Rock.Model
 {
@@ -49,27 +50,27 @@ namespace Rock.Model
         #region Entity Properties
 
         /// <summary>
-        /// Gets or sets the Id of the <see cref="StepType"/> to which this step belongs. This property is required.
+        /// Gets or sets the Id of the <see cref="Rock.Model.StepType"/> to which this step belongs. This property is required.
         /// </summary>
         [Required]
         [DataMember( IsRequired = true )]
         public int StepTypeId { get; set; }
 
         /// <summary>
-        /// Gets or sets the Id of the <see cref="StepStatus"/> to which this step belongs.
+        /// Gets or sets the Id of the <see cref="Rock.Model.StepStatus"/> to which this step belongs.
         /// </summary>
         [DataMember]
         public int? StepStatusId { get; set; }
 
         /// <summary>
-        /// Gets or sets the Id of the <see cref="PersonAlias"/> that identifies the Person associated with taking this step. This property is required.
+        /// Gets or sets the Id of the <see cref="Rock.Model.PersonAlias"/> that identifies the Person associated with taking this step. This property is required.
         /// </summary>
         [Required]
         [DataMember( IsRequired = true )]
         public int PersonAliasId { get; set; }
 
         /// <summary>
-        /// Gets or sets the Id of the <see cref="Campus"/> associated with this step.
+        /// Gets or sets the Id of the <see cref="Rock.Model.Campus"/> associated with this step.
         /// </summary>
         [DataMember]
         public int? CampusId { get; set; }
@@ -160,31 +161,31 @@ namespace Rock.Model
         #region Virtual Properties
 
         /// <summary>
-        /// Gets or sets the Step Type.
+        /// Gets or sets the <see cref="Rock.Model.StepType"/>.
         /// </summary>
         [DataMember]
         public virtual StepType StepType { get; set; }
 
         /// <summary>
-        /// Gets or sets the Step Status.
+        /// Gets or sets the <see cref="Rock.Model.StepStatus"/>.
         /// </summary>
         [DataMember]
         public virtual StepStatus StepStatus { get; set; }
 
         /// <summary>
-        /// Gets or sets the Person Alias.
+        /// Gets or sets the <see cref="Rock.Model.PersonAlias"/>.
         /// </summary>
         [DataMember]
         public virtual PersonAlias PersonAlias { get; set; }
 
         /// <summary>
-        /// Gets or sets the Campus.
+        /// Gets or sets the <see cref="Rock.Model.Campus"/>.
         /// </summary>
         [DataMember]
         public virtual Campus Campus { get; set; }
 
         /// <summary>
-        /// Gets or sets a collection containing the <see cref="StepWorkflow">StepWorkflows</see> that are of this step.
+        /// Gets or sets a collection containing the <see cref="Rock.Model.StepWorkflow">StepWorkflows</see> that are of this step.
         /// </summary>
         [DataMember]
         public virtual ICollection<StepWorkflow> StepWorkflows
@@ -310,10 +311,23 @@ namespace Rock.Model
         /// <param name="entry">The entry.</param>
         public override void PreSaveChanges( DbContext dbContext, DbEntityEntry entry )
         {
-            // Add a transaction to process workflows associated with changes to this Step.
-            var transaction = new Rock.Transactions.StepChangeTransaction( entry );
+            int? previousStepStatusId = null;
 
-            Rock.Transactions.RockQueue.TransactionQueue.Enqueue( transaction );
+            if ( entry.State == System.Data.Entity.EntityState.Modified )
+            {
+                var dbProperty = entry.Property( nameof( StepStatusId ) );
+                previousStepStatusId = dbProperty?.OriginalValue as int?;
+            }
+
+            // Send a task to process workflows associated with changes to this Step.
+            new LaunchStepChangeWorkflows.Message
+            {
+                EntityGuid = Guid,
+                EntityState = entry.State,
+                StepTypeId = StepTypeId,
+                CurrentStepStatusId = StepStatusId,
+                PreviousStepStatusId = previousStepStatusId
+            }.Send();
 
             base.PreSaveChanges( dbContext, entry );
         }

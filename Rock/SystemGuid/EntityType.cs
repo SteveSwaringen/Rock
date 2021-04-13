@@ -223,6 +223,11 @@ namespace Rock.SystemGuid
         public const string MERGE_TEMPLATE = "CD1DB988-6891-4B0F-8D1B-B0A311A3BC3E";
 
         /// <summary>
+        /// The GUID for the entity <see cref="Rock.Blocks.Types.Mobile.Prayer.AnswerToPrayer"/>.
+        /// </summary>
+        public const string MOBILE_ANSWER_TO_PRAYER_BLOCK_TYPE = "759AFCA0-9E0B-4A22-A402-CD4499F2A457";
+
+        /// <summary>
         /// The GUID for the entity Rock.Blocks.Types.Mobile.Content
         /// </summary>
         public const string MOBILE_CONTENT_BLOCK_TYPE = "B9ADB0A5-62B0-4D74-BDFF-1AA959788602";
@@ -248,6 +253,16 @@ namespace Rock.SystemGuid
         public const string MOBILE_LOGIN_BLOCK_TYPE = "6CE2D3D7-18D8-49FF-8C39-0CA98EB5DEB4";
 
         /// <summary>
+        /// The GUID for the entity Rock.Blocks.Types.Mobile.Core.Notes
+        /// </summary>
+        public const string MOBILE_CORE_NOTES_BLOCK_TYPE = "2FED71D1-4A60-4EB5-B971-530B5D1FC041";
+
+		/// <summary>
+        /// The GUID for the entity <see cref="Rock.Blocks.Types.Mobile.Prayer.MyPrayerRequests"/>.
+        /// </summary>
+        public const string MOBILE_MY_PRAYER_REQUESTS_BLOCK_TYPE = "E644DE6A-44CA-48AC-BF33-5429DA8052C6";
+
+        /// <summary>
         /// The GUID for the entity Rock.Blocks.Types.Mobile.ProfileDetails
         /// </summary>
         public const string MOBILE_PROFILE_DETAILS_BLOCK_TYPE = "A1ED4948-0778-4E13-B434-E97795DDB68B";
@@ -268,6 +283,11 @@ namespace Rock.SystemGuid
         public const string MOBILE_CMS_HERO_BLOCK_TYPE = "49BE78CD-2D19-44C4-A6BF-4F3B5D3F97C8";
 
         /// <summary>
+        /// The GUID for the entity Rock.Blocks.Types.Mobile.Cms.StructuredContentView
+        /// </summary>
+        public const string MOBILE_CMS_STRUCTUREDCONTENTVIEW_BLOCK_TYPE = "219660C4-8F32-46DA-B8E3-A7A6FA0D6B76";
+
+        /// <summary>
         /// The GUID for the entity Rock.Blocks.Types.Mobile.Events.CalendarEventList
         /// </summary>
         public const string MOBILE_EVENTS_CALENDAREVENTLIST_BLOCK_TYPE = "6FB9F1F4-5F24-4A22-A6EB-A7FA499179A9";
@@ -278,9 +298,24 @@ namespace Rock.SystemGuid
         public const string MOBILE_EVENTS_CALENDARVIEW_BLOCK_TYPE = "5A26F32F-892E-4E76-B64A-0F54A77C863D";
 
         /// <summary>
+        /// The GUID for the entity Rock.Blocks.Types.Mobile.Communication.CommunicationView
+        /// </summary>
+        public const string MOBILE_COMMUNICATION_COMMUNICATIONVIEW_BLOCK_TYPE = "4AF5FCEF-CBF6-486B-A04D-920E31356B7F";
+
+        /// <summary>
+        /// The GUID for the entity Rock.Blocks.Types.Mobile.Events.CalendarEventItemOccurrenceView
+        /// </summary>
+        public const string MOBILE_EVENTS_CALENDAREVENTITEMOCCURRENCEVIEW_BLOCK_TYPE = "04C43693-C524-4679-9F65-047F94A74CAB";
+
+        /// <summary>
         /// The GUID for the entity Rock.Blocks.Types.Mobile.Events.CommunicationListSubscribe
         /// </summary>
         public const string MOBILE_EVENTS_COMMUNICATION_LIST_SUBSCRIBE_BLOCK_TYPE = "C4B81A58-6380-4C38-85E8-0536E584310E";
+
+        /// <summary>
+        /// The GUID for the entity Rock.Blocks.Types.Mobile.Events.EventItemOccurrenceListByAudienceLava
+        /// </summary>
+        public const string MOBILE_EVENTS_EVENTITEMOCCURRENCELISTBYAUDIENCELAVA_BLOCK_TYPE = "95BAF1B3-5B4B-430C-BDCC-268142C708BD";
 
         /// <summary>
         /// The GUID for the entity Rock.Blocks.Types.Mobile.Events.PrayerSession
@@ -326,6 +361,11 @@ namespace Rock.SystemGuid
         /// The GUID for the entity Rock.Blocks.Types.Mobile.Prayer.PrayerRequestDetails
         /// </summary>
         public const string MOBILE_PRAYER_PRAYER_REQUEST_DETAILS_BLOCK_TYPE = "F8E56BC0-E9D1-44A4-9900-46589A1FB784";
+
+        /// <summary>
+        /// The GUID for the entity <see cref="Rock.Blocks.Types.Mobile.Security.OnboardPerson"/>.
+        /// </summary>
+        public const string MOBILE_SECURITY_ONBOARD_PERSON = "C9B7F36A-F70A-4ABF-9422-B18E579F927F";
 
         /// <summary>
         /// The guid for the Rock.Model.Note entity

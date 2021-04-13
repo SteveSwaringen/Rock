@@ -35,6 +35,7 @@ using Rock.Field;
 using Rock.Financial;
 using Rock.Model;
 using Rock.Security;
+using Rock.Tasks;
 using Rock.Web;
 using Rock.Web.Cache;
 using Rock.Web.UI;
@@ -953,7 +954,7 @@ namespace RockWeb.Blocks.Event
         {
             var state = e.State["event"];
 
-            if ( CurrentPanel > 0 && state != null && hfAllowNavigate.Value.AsBoolean() )
+            if ( CurrentPanel > 0 && state != null && hfAllowNavigate.Value.AsBoolean() && !IsPostBack )
             {
                 string[] commands = state.Split( ',' );
 
@@ -2372,20 +2373,23 @@ namespace RockWeb.Blocks.Event
                 string themeRoot = ResolveRockUrlIncludeRoot( "~~/" );
 
                 // Send/Resend a confirmation
-                var confirmation = new Rock.Transactions.SendRegistrationConfirmationTransaction();
-                confirmation.RegistrationId = registration.Id;
-                confirmation.AppRoot = appRoot;
-                confirmation.ThemeRoot = themeRoot;
-                Rock.Transactions.RockQueue.TransactionQueue.Enqueue( confirmation );
+                var processSendRegistrationConfirmationMsg = new ProcessSendRegistrationConfirmation.Message()
+                {
+                    RegistrationId = registration.Id,
+                    AppRoot = appRoot,
+                    ThemeRoot = themeRoot
+                };
+
+                processSendRegistrationConfirmationMsg.Send();
 
                 if ( isNewRegistration )
                 {
                     // Send notice of a new registration
-                    var notification = new Rock.Transactions.SendRegistrationNotificationTransaction();
-                    notification.RegistrationId = registration.Id;
-                    notification.AppRoot = appRoot;
-                    notification.ThemeRoot = themeRoot;
-                    Rock.Transactions.RockQueue.TransactionQueue.Enqueue( notification );
+                    var notificationMsg = new ProcesSendRegistrationNotification.Message();
+                    notificationMsg.RegistrationId = registration.Id;
+                    notificationMsg.AppRoot = appRoot;
+                    notificationMsg.ThemeRoot = themeRoot;
+                    notificationMsg.Send();
                 }
 
                 var registrationService = new RegistrationService( new RockContext() );
@@ -2428,13 +2432,15 @@ namespace RockWeb.Blocks.Event
 
                                 if ( DigitalSignatureComponent != null )
                                 {
-                                    var sendDocumentTxn = new Rock.Transactions.SendDigitalSignatureRequestTransaction();
-                                    sendDocumentTxn.SignatureDocumentTemplateId = RegistrationTemplate.RequiredSignatureDocumentTemplateId.Value;
-                                    sendDocumentTxn.AppliesToPersonAliasId = registrant.PersonAlias.Id;
-                                    sendDocumentTxn.AssignedToPersonAliasId = assignedTo.PrimaryAliasId ?? 0;
-                                    sendDocumentTxn.DocumentName = string.Format( "{0}_{1}", RegistrationInstanceState.Name.RemoveSpecialCharacters(), registrant.PersonAlias.Person.FullName.RemoveSpecialCharacters() );
-                                    sendDocumentTxn.Email = email;
-                                    Rock.Transactions.RockQueue.TransactionQueue.Enqueue( sendDocumentTxn );
+                                    var sendDocumentTxnMsg = new ProcessSendDigitalSignatureRequest.Message()
+                                    {
+                                        SignatureDocumentTemplateId = RegistrationTemplate.RequiredSignatureDocumentTemplateId.Value,
+                                        AppliesToPersonAliasId = registrant.PersonAlias.Id,
+                                        AssignedToPersonAliasId = assignedTo.PrimaryAliasId ?? 0,
+                                        DocumentName = string.Format( "{0}_{1}", RegistrationInstanceState.Name.RemoveSpecialCharacters(), registrant.PersonAlias.Person.FullName.RemoveSpecialCharacters() ),
+                                        Email = email
+                                    };
+                                    sendDocumentTxnMsg.Send();
                                 }
                             }
                         }
@@ -3135,8 +3141,12 @@ namespace RockWeb.Blocks.Event
                                 rockContext.SaveChanges();
                             }
 
-                            var updateDocumentTxn = new Rock.Transactions.UpdateDigitalSignatureDocumentTransaction( document.Id );
-                            Rock.Transactions.RockQueue.TransactionQueue.Enqueue( updateDocumentTxn );
+                            var updateDocumentTxn = new UpdateDigitalSignatureDocument.Message
+                            {
+                                SignatureDocumentId = document.Id
+                            };
+
+                            updateDocumentTxn.Send();
                         }
                     }
                     catch ( System.Exception ex )
@@ -4971,33 +4981,33 @@ namespace RockWeb.Blocks.Event
                 FieldVisibilityWrapper.ApplyFieldVisibilityRules( phRegistrantControls );
 
                 var form = RegistrationTemplate.Forms.OrderBy( f => f.Order ).ToList()[CurrentFormIndex];
-                foreach ( var field in form.Fields
-                    .Where( f =>
-                        !f.IsInternal &&
-                        ( !registrant.OnWaitList || f.ShowOnWaitlist ) )
-                    .OrderBy( f => f.Order ) )
+                var formFields = form.Fields
+                    .Where( f => !f.IsInternal && ( !registrant.OnWaitList || f.ShowOnWaitlist ) )
+                    .OrderBy( f => f.Order );
+
+                foreach ( var formField in formFields )
                 {
                     object value = null;
                     bool updateField = true;
 
-                    if ( field.FieldSource == RegistrationFieldSource.PersonField )
+                    if ( formField.FieldSource == RegistrationFieldSource.PersonField )
                     {
-                        value = ParsePersonField( field );
+                        value = ParsePersonField( formField );
                     }
                     else
                     {
-                        value = ParseAttributeField( field, out updateField );
+                        value = ParseAttributeField( formField, out updateField );
                     }
 
                     if ( updateField )
                     {
                         if ( value != null )
                         {
-                            registrant.FieldValues.AddOrReplace( field.Id, new FieldValueObject( field, value ) );
+                            registrant.FieldValues.AddOrReplace( formField.Id, new FieldValueObject( formField, value ) );
                         }
                         else
                         {
-                            registrant.FieldValues.Remove( field.Id );
+                            registrant.FieldValues.Remove( formField.Id );
                         }
                     }
                 }

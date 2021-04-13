@@ -821,15 +821,7 @@ The logged-in person's information will be used to complete the registrar inform
                 LoadStateDetails( registrationTemplate, rockContext );
 
                 // clone the registration template
-                var newRegistrationTemplate = registrationTemplate.Clone( false );
-                newRegistrationTemplate.CreatedByPersonAlias = null;
-                newRegistrationTemplate.CreatedByPersonAliasId = null;
-                newRegistrationTemplate.CreatedDateTime = RockDateTime.Now;
-                newRegistrationTemplate.ModifiedByPersonAlias = null;
-                newRegistrationTemplate.ModifiedByPersonAliasId = null;
-                newRegistrationTemplate.ModifiedDateTime = RockDateTime.Now;
-                newRegistrationTemplate.Id = 0;
-                newRegistrationTemplate.Guid = Guid.NewGuid();
+                var newRegistrationTemplate = registrationTemplate.CloneWithoutIdentity();
                 newRegistrationTemplate.Name = registrationTemplate.Name + " - Copy";
 
                 // Create temporary state objects for the new registration template
@@ -893,7 +885,7 @@ The logged-in person's information will be used to complete the registrar inform
                         {
                             foreach ( var rule in newFormField.FieldVisibilityRules.RuleList.Where( a => a.ComparedToRegistrationTemplateFormFieldGuid.HasValue ) )
                             {
-                                rule.ComparedToRegistrationTemplateFormFieldGuid = mapKeys.GetValueOrNull(rule.ComparedToRegistrationTemplateFormFieldGuid.Value);
+                                rule.ComparedToRegistrationTemplateFormFieldGuid = mapKeys.GetValueOrNull( rule.ComparedToRegistrationTemplateFormFieldGuid.Value );
                             }
                         }
                     }
@@ -1025,7 +1017,17 @@ The logged-in person's information will be used to complete the registrar inform
             registrationTemplate.MinimumInitialPayment = cbMinimumInitialPayment.Text.AsDecimalOrNull();
             registrationTemplate.DefaultPayment = cbDefaultPaymentAmount.Text.AsDecimalOrNull();
             registrationTemplate.FinancialGatewayId = fgpFinancialGateway.SelectedValueAsInt();
-            registrationTemplate.BatchNamePrefix = txtBatchNamePrefix.Text;
+
+            if ( IsRedirectionGateway() )
+            {
+                registrationTemplate.BatchNamePrefix = null;
+            }
+            else
+            {
+                registrationTemplate.BatchNamePrefix = txtBatchNamePrefix.Text;
+            }
+
+            ShowHideBatchPrefixTextbox();
 
             registrationTemplate.ConfirmationFromName = tbConfirmationFromName.Text;
             registrationTemplate.ConfirmationFromEmail = tbConfirmationFromEmail.Text;
@@ -2562,8 +2564,18 @@ The logged-in person's information will be used to complete the registrar inform
             cbMinimumInitialPayment.Text = registrationTemplate.MinimumInitialPayment.HasValue ? registrationTemplate.MinimumInitialPayment.Value.ToString( "N2" ) : string.Empty;
             cbDefaultPaymentAmount.Text = registrationTemplate.DefaultPayment.HasValue ? registrationTemplate.DefaultPayment.Value.ToString( "N2" ) : string.Empty;
             fgpFinancialGateway.SetValue( registrationTemplate.FinancialGatewayId );
-            txtBatchNamePrefix.Text = registrationTemplate.BatchNamePrefix;
+
+            if ( IsRedirectionGateway() )
+            {
+                txtBatchNamePrefix.Text = string.Empty;
+            }
+            else
+            {
+                txtBatchNamePrefix.Text = registrationTemplate.BatchNamePrefix;
+            }
+
             SetCostVisibility();
+            ShowHideBatchPrefixTextbox();
 
             tbConfirmationFromName.Text = registrationTemplate.ConfirmationFromName;
             tbConfirmationFromEmail.Text = registrationTemplate.ConfirmationFromEmail;
@@ -3999,6 +4011,29 @@ The logged-in person's information will be used to complete the registrar inform
 
         #endregion
 
+        protected void fgpFinancialGateway_SelectedIndexChanged( object sender, EventArgs e )
+        {
+            ShowHideBatchPrefixTextbox();
+        }
 
+        private void ShowHideBatchPrefixTextbox()
+        {
+            txtBatchNamePrefix.Visible = !IsRedirectionGateway();
+        }
+
+        private bool IsRedirectionGateway()
+        {
+            var gatewayId = fgpFinancialGateway.SelectedValueAsInt();
+
+            // validate gateway
+            if ( gatewayId.HasValue )
+            {
+                using ( var rockContext = new RockContext() )
+                {
+                    return new FinancialGatewayService( rockContext ).IsRedirectionGateway( gatewayId );
+                }
+            }
+            return false;
+        }
     }
 }

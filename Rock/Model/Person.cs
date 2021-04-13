@@ -32,9 +32,11 @@ using System.Text;
 using System.Web;
 
 using Rock.Data;
+using Rock.Tasks;
 using Rock.UniversalSearch;
 using Rock.UniversalSearch.IndexModels;
 using Rock.Web.Cache;
+using Rock.Lava;
 
 namespace Rock.Model
 {
@@ -134,6 +136,8 @@ namespace Rock.Model
         /// A <see cref="System.Boolean"/> value that is <c>true</c> if the Person is deceased; otherwise <c>false</c>.
         /// </value>
         [DataMember]
+        [Index( "IX_IsDeceased_FirstName_LastName", IsUnique = false, Order = 1 )]
+        [Index( "IX_IsDeceased_LastName_FirstName", IsUnique = false, Order = 1 )]
         public bool IsDeceased
         {
             get
@@ -146,6 +150,7 @@ namespace Rock.Model
                 _isDeceased = value;
             }
         }
+
         private bool _isDeceased = false;
 
         /// <summary>
@@ -166,6 +171,8 @@ namespace Rock.Model
         /// </value>
         [MaxLength( 50 )]
         [DataMember]
+        [Index( "IX_IsDeceased_FirstName_LastName", IsUnique = false, Order = 2)]
+        [Index( "IX_IsDeceased_LastName_FirstName", IsUnique = false, Order = 3 )]
         public string FirstName { get; set; }
 
         /// <summary>
@@ -201,6 +208,8 @@ namespace Rock.Model
         [MaxLength( 50 )]
         [DataMember]
         [Previewable]
+        [Index( "IX_IsDeceased_FirstName_LastName", IsUnique = false, Order = 3 )]
+        [Index( "IX_IsDeceased_LastName_FirstName", IsUnique = false, Order = 2 )]
         public string LastName { get; set; }
 
         /// <summary>
@@ -296,7 +305,7 @@ namespace Rock.Model
         public int? GraduationYear { get; set; }
 
         /// <summary>
-        /// Gets or sets the giving group id.  If an individual would like their giving to be grouped with the rest of their family,
+        /// Gets or sets the <see cref="Rock.Model.Group">giving group</see> id.  If an individual would like their giving to be grouped with the rest of their family,
         /// this will be the id of their family group.  If they elect to contribute on their own, this value will be null.
         /// </summary>
         /// <value>
@@ -367,6 +376,7 @@ namespace Rock.Model
             get { return _isEmailActive; }
             set { _isEmailActive = value; }
         }
+
         private bool _isEmailActive = true;
 
         /// <summary>
@@ -518,6 +528,7 @@ namespace Rock.Model
                 _isLockedAsChild = value;
             }
         }
+
         private bool _isLockedAsChild = false;
 
         /// <summary>
@@ -560,13 +571,13 @@ namespace Rock.Model
         #region Virtual Properties
 
         /// <summary>
-        /// Gets the primary alias.
+        /// Gets the <see cref="Rock.Model.PersonAlias">primary alias</see>.
         /// </summary>
         /// <value>
         /// The primary alias.
         /// </value>
         [NotMapped]
-        [LavaInclude]
+        [LavaVisible]
         public virtual PersonAlias PrimaryAlias
         {
             get
@@ -576,7 +587,7 @@ namespace Rock.Model
         }
 
         /// <summary>
-        /// Gets the primary alias identifier.
+        /// Gets the <see cref="Rock.Model.PersonAlias">primary alias</see> identifier.
         /// </summary>
         /// <value>
         /// The primary alias identifier.
@@ -893,7 +904,7 @@ namespace Rock.Model
         /// <value>
         /// URL of the photo
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         [NotMapped]
         public virtual string PhotoUrl
         {
@@ -945,7 +956,7 @@ namespace Rock.Model
         /// <value>
         /// A collection of <see cref="Rock.Model.GroupMember">GroupMember</see> entities representing the group memberships that are associated with
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual ICollection<GroupMember> Members
         {
             get { return _members; }
@@ -955,12 +966,12 @@ namespace Rock.Model
         private ICollection<GroupMember> _members;
 
         /// <summary>
-        /// Gets or sets the aliases for this person
+        /// Gets or sets the <see cref="Rock.Model.PersonAlias">aliases</see> for this person.
         /// </summary>
         /// <value>
         /// The aliases.
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual ICollection<PersonAlias> Aliases
         {
             get { return _aliases; }
@@ -1056,7 +1067,7 @@ namespace Rock.Model
         /// <value>
         /// The giving group.
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual Group GivingGroup { get; set; }
 
         /// <summary>
@@ -1065,34 +1076,34 @@ namespace Rock.Model
         /// <value>
         /// A collection of <see cref="Rock.Model.PersonSignal">PersonSignal</see> entities representing the signals that are associated with this person.
         /// </value>
-        [LavaIgnore]
+        [LavaHidden]
         public virtual ICollection<PersonSignal> Signals { get; set; }
 
         /// <summary>
-        /// Gets or sets the primary family.
+        /// Gets or sets the <see cref="Rock.Model.Group">primary family</see>.
         /// </summary>
         /// <value>
         /// The primary family.
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual Group PrimaryFamily { get; set; }
 
         /// <summary>
-        /// Gets or sets the person's primary campus.
+        /// Gets or sets the person's <see cref="Rock.Model.Campus">primary campus</see>.
         /// </summary>
         /// <value>
         /// The primary campus.
         /// </value>
-        [LavaInclude]
+        [LavaVisible]
         public virtual Campus PrimaryCampus { get; set; }
 
         /// <summary>
-        /// Gets or sets the person's default financial account gift designation.
+        /// Gets or sets the person's default <see cref="Rock.Model.FinancialAccount" /> gift designation.
         /// </summary>
         /// <value>
         /// The financial account.
         /// </value>
-        [LavaIgnore]
+        [LavaHidden]
         public virtual FinancialAccount ContributionFinancialAccount { get; set; }
 
         /// <summary>
@@ -1380,7 +1391,7 @@ namespace Rock.Model
         /// A <see cref="System.Double"/> representing the Person's age (including fraction of year)
         /// </value>
         [NotMapped]
-        [LavaInclude]
+        [LavaVisible]
         public virtual double? AgePrecise
         {
             get
@@ -1576,7 +1587,7 @@ namespace Rock.Model
         /// A <see cref="System.String"/> representing the impersonation parameter.
         /// </value>
         [NotMapped]
-        [LavaInclude]
+        [LavaVisible]
         public virtual string ImpersonationParameter
         {
             get
@@ -1612,7 +1623,7 @@ namespace Rock.Model
         /// A <see cref="T:System.String" /> that represents a URL friendly version of the entity's unique key.
         /// </value>
         [NotMapped]
-        [LavaInclude]
+        [LavaVisible]
         public override string UrlEncodedKey
         {
             get
@@ -2064,8 +2075,13 @@ namespace Rock.Model
 
             if ( this.IsValid )
             {
-                var transaction = new Rock.Transactions.SaveMetaphoneTransaction( this );
-                Rock.Transactions.RockQueue.TransactionQueue.Enqueue( transaction );
+                var addNewMetaphonesMsg = new AddNewMetaphones.Message()
+                {
+                    FirstName = this.FirstName,
+                    LastName = this.LastName,
+                    NickName = this.NickName
+                };
+                addNewMetaphonesMsg.Send();
             }
 
             HistoryChanges = new History.HistoryChangeList();
@@ -2649,10 +2665,12 @@ namespace Rock.Model
                         {
                             return "Assets/Images/person-no-photo-female.svg?";
                         }
+
                     case Gender.Male:
                         {
                             return "Assets/Images/person-no-photo-male.svg?";
                         }
+
                     default:
                         {
                             return "Assets/Images/person-no-photo-unknown.svg?";
@@ -2666,10 +2684,12 @@ namespace Rock.Model
                     {
                         return "Assets/Images/person-no-photo-child-female.svg?";
                     }
+
                 case Gender.Male:
                     {
                         return "Assets/Images/person-no-photo-child-male.svg?";
                     }
+
                 default:
                     {
                         return "Assets/Images/person-no-photo-child-unknown.svg?";
@@ -2852,7 +2872,8 @@ namespace Rock.Model
         {
             if ( !string.IsNullOrWhiteSpace( signalColor ) )
             {
-                return string.Format( "<i class='{1}' style='color: {0};'></i>",
+                return string.Format(
+                    "<i class='{1}' style='color: {0};'></i>",
                     signalColor,
                     !string.IsNullOrWhiteSpace( signalIconCssClass ) ? signalIconCssClass : "fa fa-flag" );
             }
@@ -3028,7 +3049,6 @@ namespace Rock.Model
 
             if ( personIds != null )
             {
-
                 rockContext = rockContext ?? new RockContext();
 
                 Guid? homeAddressGuid = Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME.AsGuidOrNull();
@@ -3195,7 +3215,7 @@ namespace Rock.Model
         /// <returns></returns>
         public ModelFieldFilterConfig GetIndexFilterConfig()
         {
-            return new ModelFieldFilterConfig() { FilterLabel = "", FilterField = "" };
+            return new ModelFieldFilterConfig() { FilterLabel = string.Empty, FilterField = string.Empty };
         }
 
         /// <summary>
@@ -3585,11 +3605,11 @@ namespace Rock.Model
                     phoneObject.IsUnlisted = isUnlisted ?? phoneObject.IsUnlisted;
                 }
             }
-
-            // they don't have a number of this type. If one is being added, we'll add it.
-            // (otherwise we'll just do nothing, leaving it as it)
             else if ( !string.IsNullOrWhiteSpace( phoneNumber ) )
             {
+                // they don't have a number of this type. If one is being added, we'll add it.
+                // (otherwise we'll just do nothing, leaving it as it)
+
                 // create a new phone number and add it to their list.
                 phoneObject = new PhoneNumber();
                 person.PhoneNumbers.Add( phoneObject );
@@ -3598,7 +3618,7 @@ namespace Rock.Model
                 phoneNumberService.Add( phoneObject );
 
                 // get the typeId for this phone number so we set it correctly
-                //var numberType = DefinedValueCache.Get( phoneTypeGuid );
+                // var numberType = DefinedValueCache.Get( phoneTypeGuid );
                 phoneObject.NumberTypeValueId = numberTypeValueId;
 
                 phoneObject.CountryCode = PhoneNumber.CleanNumber( phoneCountryCode );
@@ -3742,9 +3762,9 @@ namespace Rock.Model
                       p => new
                       {
                           Person = p,
-                          Age = ( p.BirthDate > SqlFunctions.DateAdd( "year", -SqlFunctions.DateDiff( "year", p.BirthDate, currentDate ), currentDate )
+                          Age = p.BirthDate > SqlFunctions.DateAdd( "year", -SqlFunctions.DateDiff( "year", p.BirthDate, currentDate ), currentDate )
                             ? SqlFunctions.DateDiff( "year", p.BirthDate, currentDate ) - 1
-                            : SqlFunctions.DateDiff( "year", p.BirthDate, currentDate ) )
+                            : SqlFunctions.DateDiff( "year", p.BirthDate, currentDate )
                       } );
 
             if ( includePeopleWithNoAge )

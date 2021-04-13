@@ -138,6 +138,7 @@ namespace RockWeb.Blocks.GroupScheduling
             Page.Response.Cache.SetNoStore();
 
             RockPage.AddScriptLink( "~/Scripts/dragula.min.js", true );
+            RockPage.AddScriptLink( "~/Scripts/Rock/Controls/GroupScheduler/groupScheduler.js" );
             RockPage.AddCSSLink( "~/Themes/Rock/Styles/group-scheduler.css", true );
 
             this.AddConfigurationUpdateTrigger( upnlContent );
@@ -770,13 +771,13 @@ btnCopyToClipboard.ClientID );
             }
             else if ( selectedLocations.Count() == 1 )
             {
-                selectedLocationFilterText = selectedLocations.First().ToString();
+                selectedLocationFilterText = selectedLocations.First().ToString( true );
             }
             else
             {
                 selectedLocationFilterText = string.Format(
                     "<span title='{0}'>{1} Locations</span>",
-                    selectedLocations.Select( a => a.ToString() ).ToList().AsDelimited( ", " ).EncodeHtml(),
+                    selectedLocations.Select( a => a.ToString( true ) ).ToList().AsDelimited( ", " ).EncodeHtml(),
                     selectedLocations.Count() );
             }
 
@@ -794,11 +795,11 @@ btnCopyToClipboard.ClientID );
                     {
                         if ( selectedLocationIds.Contains( locationId.Value ) )
                         {
-                            locationButton.Text = string.Format( "<i class='fa fa-check'></i> {0}", location.ToString().EncodeHtml() );
+                            locationButton.Text = string.Format( "<i class='fa fa-check'></i> {0}", location.ToString( true ).EncodeHtml() );
                         }
                         else
                         {
-                            locationButton.Text = string.Format( " {0}", location.ToString() );
+                            locationButton.Text = string.Format( " {0}", location.ToString( true ) );
                         }
                     }
                 }
@@ -1990,7 +1991,7 @@ btnCopyToClipboard.ClientID );
         protected void btnSendNowAllGroups_Click( object sender, EventArgs e )
         {
             List<Group> sendToGroups = GetAuthorizedListedGroups();
-            SendConfirmationEmails( sendToGroups );
+            SendConfirmations( sendToGroups );
         }
 
         /// <summary>
@@ -2007,14 +2008,14 @@ btnCopyToClipboard.ClientID );
                 sendToGroups.Add( currentlySelectedGroup );
             }
 
-            SendConfirmationEmails( sendToGroups );
+            SendConfirmations( sendToGroups );
         }
 
         /// <summary>
         /// Sends the confirmation emails to the specified groups
         /// </summary>
         /// <param name="groups">The groups.</param>
-        protected void SendConfirmationEmails( List<Group> groups )
+        protected void SendConfirmations( List<Group> groups )
         {
             upnlContent.Update();
             var rockContext = new RockContext();
@@ -2036,35 +2037,43 @@ btnCopyToClipboard.ClientID );
                 .Where( a => attendanceOccurrenceIdList.Contains( a.OccurrenceId ) )
                 .Where( a => a.ScheduleConfirmationSent != true );
 
-            List<string> errorMessages;
-            var emailsSent = attendanceService.SendScheduleConfirmationSystemEmails( sendConfirmationAttendancesQuery, out errorMessages );
-            bool isSendConfirmationAttendancesFound = sendConfirmationAttendancesQuery.Any();
+            var sendMessageResult = attendanceService.SendScheduleConfirmationCommunication( sendConfirmationAttendancesQuery );
+            var isSendConfirmationAttendancesFound = sendConfirmationAttendancesQuery.Any();
             rockContext.SaveChanges();
 
-            StringBuilder summaryMessageBuilder = new StringBuilder();
-            ModalAlertType alertType;
+            var summaryMessageBuilder = new StringBuilder();
+            var alertType = ModalAlertType.Information;
 
-            if ( errorMessages.Any() )
+            if ( sendMessageResult.Errors.Any() )
             {
                 alertType = ModalAlertType.Alert;
 
-                var logException = new Exception( "One or more errors occurred when sending confirmation emails: " + Environment.NewLine + errorMessages.AsDelimited( Environment.NewLine ) );
+                var logException = new Exception( "One or more errors occurred when sending confirmations: " + Environment.NewLine + sendMessageResult.Errors.AsDelimited( Environment.NewLine ) );
 
                 ExceptionLogService.LogException( logException );
 
                 summaryMessageBuilder.AppendLine( logException.Message );
             }
-            else
+
+            if ( sendMessageResult.Warnings.Any() )
             {
-                alertType = ModalAlertType.Information;
-                if ( emailsSent > 0 && isSendConfirmationAttendancesFound )
+                if( alertType != ModalAlertType.Alert )
                 {
-                    summaryMessageBuilder.AppendLine( string.Format( "Successfully sent {0} confirmation {1}", emailsSent, "email".PluralizeIf( emailsSent != 1 ) ) );
+                    alertType = ModalAlertType.Warning;
                 }
-                else
-                {
-                    summaryMessageBuilder.AppendLine( "Everybody has already been sent a confirmation email. No additional confirmation emails sent." );
-                }
+
+                var warningMessage = "One or more warnings occurred when sending confirmations: " + Environment.NewLine + sendMessageResult.Warnings.AsDelimited( Environment.NewLine );
+
+                summaryMessageBuilder.AppendLine( warningMessage );
+            }
+
+            if ( sendMessageResult.MessagesSent > 0 && isSendConfirmationAttendancesFound )
+            {
+                summaryMessageBuilder.AppendLine( string.Format( "Successfully sent {0} {1}.", sendMessageResult.MessagesSent, "confirmation".PluralizeIf( sendMessageResult.MessagesSent != 1 ) ) );
+            }
+            else if ( !isSendConfirmationAttendancesFound )
+            {
+                summaryMessageBuilder.AppendLine( "Everybody has already been sent a confirmation. No additional confirmations sent." );
             }
 
             maSendNowResults.Show( summaryMessageBuilder.ToString().ConvertCrLfToHtmlBr(), alertType );
@@ -2224,7 +2233,7 @@ btnCopyToClipboard.ClientID );
             if ( location != null )
             {
                 btnSelectLocation.CommandArgument = location.Id.ToString();
-                btnSelectLocation.Text = location.ToString();
+                btnSelectLocation.Text = location.ToString( true );
             }
             else
             {

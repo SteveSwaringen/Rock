@@ -531,6 +531,7 @@ namespace RockWeb.Blocks.Connection
         {
             base.OnInit( e );
             RockPage.AddScriptLink( "~/Scripts/dragula.min.js" );
+            RockPage.AddScriptLink( "~/Scripts/Rock/Controls/ConnectionRequestBoard/connectionRequestBoard.js" );
             RockPage.AddCSSLink( "~/Themes/Rock/Styles/connection-request.css", true );
 
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
@@ -1847,7 +1848,7 @@ namespace RockWeb.Blocks.Connection
             var authorizedWorkflows = new List<ConnectionWorkflow>();
             foreach ( var manualWorkflow in manualWorkflows )
             {
-                if ( manualWorkflow.WorkflowType.IsActive ?? true && manualWorkflow.WorkflowType.IsAuthorized( Authorization.VIEW, CurrentPerson ) )
+                if ( ( manualWorkflow.WorkflowType.IsActive ?? true ) && manualWorkflow.WorkflowType.IsAuthorized( Authorization.VIEW, CurrentPerson ) )
                 {
                     authorizedWorkflows.Add( manualWorkflow );
                 }

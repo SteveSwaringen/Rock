@@ -606,7 +606,7 @@ namespace Rock.Model
                 GenderMatched = query.Gender.HasValue & query.Gender == person.Gender;
 
                 EmailSearchSpecified = query.Email.IsNotNullOrWhiteSpace();
-                PrimaryEmailMatched = query.Email.IsNotNullOrWhiteSpace() && person.Email.IsNotNullOrWhiteSpace() && query.Email == person.Email;
+                PrimaryEmailMatched = query.Email.IsNotNullOrWhiteSpace() && person.Email.IsNotNullOrWhiteSpace() && person.Email.Equals( query.Email, StringComparison.CurrentCultureIgnoreCase );
 
                 if ( query.BirthDate.HasValue && person.BirthDate.HasValue )
                 {
@@ -785,7 +785,7 @@ namespace Rock.Model
             var match = matches.FirstOrDefault();
 
             // Check if we care about updating the person's primary email
-            if ( updatePrimaryEmail && match != null )
+            if ( updatePrimaryEmail && match != null && personMatchQuery.Email.IsNotNullOrWhiteSpace() )
             {
                 return UpdatePrimaryEmail( personMatchQuery.Email, match );
             }
@@ -3774,7 +3774,7 @@ namespace Rock.Model
                     rockContext.SaveChanges();
                 }
 
-                if ( group.GroupType.Guid.Equals( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY.AsGuid() ) )
+                if ( group.GroupTypeId == GroupTypeCache.Get( SystemGuid.GroupType.GROUPTYPE_FAMILY.AsGuid() ).Id )
                 {
                     var oldMemberChanges = new History.HistoryChangeList();
                     History.EvaluateChange( oldMemberChanges, "Role", fm.GroupRole.Name, string.Empty );
