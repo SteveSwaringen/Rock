@@ -30,6 +30,8 @@ using Ical.Net.DataTypes;
 using Rock;
 using Rock.Data;
 using Rock.Web.Cache;
+using Rock.Lava;
+using System.Collections.Concurrent;
 
 namespace Rock.Model
 {
@@ -302,7 +304,7 @@ namespace Rock.Model
                  * To improve performance, only go out a week (or so) if this is a weekly or daily schedule.
                  * If this optimization fails to find a next scheduled date, fall back to looking out a full year
                  */
-                
+
                 if ( rrule?.Frequency == FrequencyType.Weekly )
                 {
                     var everyXWeeks = rrule.Interval;
@@ -324,7 +326,7 @@ namespace Rock.Model
                     occurrences = GetScheduledStartTimes( currentDateTime, endDate );
                     nextOccurrence = occurrences.Min( o => ( DateTime? ) o );
                 }
-                
+
                 return nextOccurrence;
             }
             else
@@ -735,8 +737,8 @@ namespace Rock.Model
                 }
 
                 foreach ( var occurrence in endDateTime.HasValue ?
-                    InetCalendarHelper.GetOccurrences( calEvent, beginDateTime, endDateTime.Value ) :
-                    InetCalendarHelper.GetOccurrences( calEvent, beginDateTime ) )
+                    InetCalendarHelper.GetOccurrences( iCalendarContent, beginDateTime, endDateTime.Value ) :
+                    InetCalendarHelper.GetOccurrences( iCalendarContent, beginDateTime ) )
                 {
                     bool exclude = false;
                     if ( exclusionDates.Any() && occurrence.Period.StartTime != null )
@@ -1013,7 +1015,7 @@ namespace Rock.Model
                                 // The Nth <DayOfWeekName>.  We only support one *day* in the ByDay list, but multiple *offsets*.
                                 // So, it can be the "The first and third Monday" of every month.
                                 var bydate = rrule.ByDay[0];
-                                var offsetNames = NthNamesAbbreviated.Where( a => rrule.ByDay.Select( o=>o.Offset ).Contains( a.Key ) ).Select( a => a.Value );
+                                var offsetNames = NthNamesAbbreviated.Where( a => rrule.ByDay.Select( o => o.Offset ).Contains( a.Key ) ).Select( a => a.Value );
                                 if ( offsetNames != null )
                                 {
                                     result = string.Format( "The {0} {1} of every month", offsetNames.JoinStringsWithCommaAnd(), bydate.DayOfWeek.ConvertToString() );
@@ -1041,7 +1043,7 @@ namespace Rock.Model
                 else
                 {
                     // not any type of recurring, might be one-time or from specific dates, etc
-                    var dates = InetCalendarHelper.GetOccurrences( calendarEvent, DateTime.MinValue, DateTime.MaxValue )
+                    var dates = InetCalendarHelper.GetOccurrences( iCalendarContent, DateTime.MinValue, DateTime.MaxValue )
                         .Where( a => a.Period != null && a.Period.StartTime != null )
                         .Select( a => a.Period.StartTime.Value )
                         .OrderBy( a => a ).ToList();
@@ -1576,14 +1578,10 @@ namespace Rock.Model
     /// </remarks>
     public static class InetCalendarHelper
     {
-        private static object _initLock;
-        private static Dictionary<string, Ical.Net.Event> _iCalSchedules = new Dictionary<string, Ical.Net.Event>();
-
-        static InetCalendarHelper()
-        {
-            // iCal.Net.LoadFromStream is not threadsafe, so use locking
-            InetCalendarHelper._initLock = new object();
-        }
+        private static object _initLockObsolete = new object();
+        private static object _initLock2 = new object();
+        private static ConcurrentDictionary<string, Occurrence[]> _iCalOccurrences = new ConcurrentDictionary<string, Occurrence[]>();
+        private static ConcurrentDictionary<string, Ical.Net.Event> _iCalSchedules = new ConcurrentDictionary<string, Ical.Net.Event>();
 
         /// <summary>
         /// Gets the calendar event.
@@ -1601,26 +1599,24 @@ namespace Rock.Model
 
             Event calendarEvent = null;
 
-            lock ( InetCalendarHelper._initLock )
+            Ical.Net.Event iCalEvent;
+            if ( _iCalSchedules.TryGetValue( trimmedContent, out iCalEvent ) )
             {
-                if ( _iCalSchedules.ContainsKey( trimmedContent ) )
-                {
-                    return _iCalSchedules[trimmedContent];
-                }
+                return iCalEvent;
+            }
 
-                StringReader stringReader = new StringReader( trimmedContent );
-                var calendarList = Calendar.LoadFromStream( stringReader );
+            StringReader stringReader = new StringReader( trimmedContent );
+            var calendarList = Calendar.LoadFromStream( stringReader );
 
-                //// iCal is stored as a list of Calendar's each with a list of Events, etc.  
-                //// We just need one Calendar and one Event
-                if ( calendarList.Count > 0 )
+            //// iCal is stored as a list of Calendar's each with a list of Events, etc.  
+            //// We just need one Calendar and one Event
+            if ( calendarList.Count > 0 )
+            {
+                var calendar = calendarList[0] as Calendar;
+                if ( calendar != null )
                 {
-                    var calendar = calendarList[0] as Calendar;
-                    if ( calendar != null )
-                    {
-                        calendarEvent = calendar.Events[0] as Event;
-                        _iCalSchedules.AddOrReplace( trimmedContent, calendarEvent );
-                    }
+                    calendarEvent = calendar.Events[0] as Event;
+                    _iCalSchedules.TryAdd( trimmedContent, calendarEvent );
                 }
             }
 
@@ -1630,12 +1626,62 @@ namespace Rock.Model
         /// <summary>
         /// Gets the occurrences.
         /// </summary>
+        /// <param name="iCalData">The i cal data.</param>
+        /// <param name="startTime">The start time.</param>
+        /// <returns></returns>
+        public static IList<Occurrence> GetOccurrences( string iCalData, DateTime startTime )
+        {
+            return GetOccurrences( iCalData, startTime, null );
+        }
+
+        /// <summary>
+        /// Gets the occurrences.
+        /// </summary>
+        /// <param name="iCalData">The i cal data.</param>
+        /// <param name="startTime">The start time.</param>
+        /// <param name="endTime">The end time.</param>
+        /// <returns></returns>
+        public static IList<Occurrence> GetOccurrences( string iCalData, DateTime startTime, DateTime? endTime )
+        {
+            var occurrenceLookup = $"{startTime.ToShortDateTimeString()}__{endTime?.ToShortDateTimeString()}__{iCalData.Trim()}";
+            Occurrence[] result;
+            var gotResult = _iCalOccurrences.TryGetValue( occurrenceLookup, out result );
+            if ( !gotResult || result == null )
+            {
+                lock ( _initLock2 )
+                {
+                    var iCalEvent = GetCalendarEvent( iCalData );
+                    if ( iCalEvent == null )
+                    {
+                        return new List<Occurrence>();
+                    }
+
+                    if ( endTime.HasValue )
+                    {
+                        result = iCalEvent.GetOccurrences( startTime, endTime.Value ).ToArray();
+                    }
+                    else
+                    {
+                        result = iCalEvent.GetOccurrences( startTime ).ToArray();
+                    }
+
+                    _iCalOccurrences.TryAdd( occurrenceLookup, result );
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets the occurrences.
+        /// </summary>
         /// <param name="icalEvent">The ical event.</param>
         /// <param name="startTime">The start time.</param>
         /// <returns></returns>
-        public static IList<Occurrence> GetOccurrences( Ical.Net.Event icalEvent, DateTime startTime )
+        [Obsolete( "Use GetOccurrences( string iCalData, DateTime startTime ) instead." )]
+        private static IList<Occurrence> GetOccurrences( Ical.Net.Event icalEvent, DateTime startTime )
         {
-            lock ( InetCalendarHelper._initLock )
+            lock ( InetCalendarHelper._initLockObsolete )
             {
                 return icalEvent.GetOccurrences( startTime ).ToList();
             }
@@ -1648,9 +1694,10 @@ namespace Rock.Model
         /// <param name="startTime">The start time.</param>
         /// <param name="endTime">The end time.</param>
         /// <returns></returns>
-        public static IList<Occurrence> GetOccurrences( Ical.Net.Event icalEvent, DateTime startTime, DateTime endTime )
+        [Obsolete( "Use GetOccurrences( string iCalData, DateTime startTime, DateTime? endTime ) instead." )]
+        private static IList<Occurrence> GetOccurrences( Ical.Net.Event icalEvent, DateTime startTime, DateTime endTime )
         {
-            lock ( InetCalendarHelper._initLock )
+            lock ( InetCalendarHelper._initLockObsolete )
             {
                 return icalEvent.GetOccurrences( startTime, endTime ).ToList();
             }
