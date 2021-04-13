@@ -15,6 +15,7 @@
 // </copyright>
 //
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -30,8 +31,6 @@ using Ical.Net.DataTypes;
 using Rock;
 using Rock.Data;
 using Rock.Web.Cache;
-using Rock.Lava;
-using System.Collections.Concurrent;
 
 namespace Rock.Model
 {
