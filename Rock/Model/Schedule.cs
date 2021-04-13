@@ -1578,8 +1578,11 @@ namespace Rock.Model
     /// </remarks>
     public static class InetCalendarHelper
     {
+        [RockObsolete( "12.4" )]
+        [Obsolete( "Remove this when no longer needed" )]
         private static object _initLockObsolete = new object();
-        private static object _initLock2 = new object();
+
+
         private static ConcurrentDictionary<string, Occurrence[]> _iCalOccurrences = new ConcurrentDictionary<string, Occurrence[]>();
         private static ConcurrentDictionary<string, Ical.Net.Event> _iCalSchedules = new ConcurrentDictionary<string, Ical.Net.Event>();
 
@@ -1597,26 +1600,41 @@ namespace Rock.Model
                 return null;
             }
 
-            Event calendarEvent = null;
+            Event calendarEvent;
 
-            Ical.Net.Event iCalEvent;
-            if ( _iCalSchedules.TryGetValue( trimmedContent, out iCalEvent ) )
+            if ( _iCalSchedules.TryGetValue( trimmedContent, out calendarEvent ) )
             {
-                return iCalEvent;
+                return calendarEvent;
             }
 
+            calendarEvent = CreateCalendarEvent( trimmedContent );
+            if ( calendarEvent != null )
+            {
+                _iCalSchedules.TryAdd( trimmedContent, calendarEvent );
+            }
+
+            return calendarEvent;
+        }
+
+        /// <summary>
+        /// Creates the calendar event.
+        /// </summary>
+        /// <param name="trimmedContent">Content of the trimmed.</param>
+        /// <returns></returns>
+        public static Event CreateCalendarEvent( string trimmedContent )
+        {
             StringReader stringReader = new StringReader( trimmedContent );
             var calendarList = Calendar.LoadFromStream( stringReader );
+            Event calendarEvent = null;
 
             //// iCal is stored as a list of Calendar's each with a list of Events, etc.  
             //// We just need one Calendar and one Event
-            if ( calendarList.Count > 0 )
+            if ( calendarList.Count() > 0 )
             {
                 var calendar = calendarList[0] as Calendar;
                 if ( calendar != null )
                 {
                     calendarEvent = calendar.Events[0] as Event;
-                    _iCalSchedules.TryAdd( trimmedContent, calendarEvent );
                 }
             }
 
@@ -1643,33 +1661,49 @@ namespace Rock.Model
         /// <returns></returns>
         public static IList<Occurrence> GetOccurrences( string iCalData, DateTime startTime, DateTime? endTime )
         {
-            var occurrenceLookup = $"{startTime.ToShortDateTimeString()}__{endTime?.ToShortDateTimeString()}__{iCalData.Trim()}";
-            Occurrence[] result;
-            var gotResult = _iCalOccurrences.TryGetValue( occurrenceLookup, out result );
-            if ( !gotResult || result == null )
+            DateTime? endTimeDate = null;
+            if ( endTime.HasValue && endTime.Value.Date < DateTime.MaxValue.Date )
             {
-                lock ( _initLock2 )
-                {
-                    var iCalEvent = GetCalendarEvent( iCalData );
-                    if ( iCalEvent == null )
-                    {
-                        return new List<Occurrence>();
-                    }
-
-                    if ( endTime.HasValue )
-                    {
-                        result = iCalEvent.GetOccurrences( startTime, endTime.Value ).ToArray();
-                    }
-                    else
-                    {
-                        result = iCalEvent.GetOccurrences( startTime ).ToArray();
-                    }
-
-                    _iCalOccurrences.TryAdd( occurrenceLookup, result );
-                }
+                endTimeDate = endTime?.AddDays( 1 ).Date;
             }
 
-            return result;
+            var occurrenceLookup = Rock.Security.Encryption.GetSHA1Hash( $"{startTime.Date.ToShortDateTimeString()}__{endTimeDate?.ToShortDateTimeString()}__{iCalData.Trim()}" );
+            Occurrence[] occurrenceList;
+            var gotResult = _iCalOccurrences.TryGetValue( occurrenceLookup, out occurrenceList );
+            if ( gotResult && occurrenceList != null )
+            {
+                return occurrenceList;
+            }
+
+            var iCalEvent = CreateCalendarEvent( iCalData );
+            if ( iCalEvent == null )
+            {
+                return new List<Occurrence>();
+            }
+
+            if ( endTime.HasValue )
+            {
+                occurrenceList = iCalEvent.GetOccurrences( startTime, endTime.Value ).ToArray();
+            }
+            else
+            {
+                occurrenceList = iCalEvent.GetOccurrences( startTime ).ToArray();
+            }
+
+            _iCalOccurrences.TryAdd( occurrenceLookup, occurrenceList );
+
+
+            if ( endTime.HasValue )
+            {
+                occurrenceList = occurrenceList.Where( a => a.Period.StartTime.Value >= startTime && a.Period.StartTime.Value < endTime ).ToArray();
+            }
+            else
+            {
+                occurrenceList = occurrenceList.Where( a => a.Period.StartTime.Value >= startTime ).ToArray();
+            }
+
+
+            return occurrenceList;
         }
 
         /// <summary>
@@ -1678,6 +1712,7 @@ namespace Rock.Model
         /// <param name="icalEvent">The ical event.</param>
         /// <param name="startTime">The start time.</param>
         /// <returns></returns>
+        [RockObsolete( "12.4" )]
         [Obsolete( "Use GetOccurrences( string iCalData, DateTime startTime ) instead." )]
         private static IList<Occurrence> GetOccurrences( Ical.Net.Event icalEvent, DateTime startTime )
         {
@@ -1694,6 +1729,7 @@ namespace Rock.Model
         /// <param name="startTime">The start time.</param>
         /// <param name="endTime">The end time.</param>
         /// <returns></returns>
+        [RockObsolete( "12.4" )]
         [Obsolete( "Use GetOccurrences( string iCalData, DateTime startTime, DateTime? endTime ) instead." )]
         private static IList<Occurrence> GetOccurrences( Ical.Net.Event icalEvent, DateTime startTime, DateTime endTime )
         {
